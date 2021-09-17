@@ -2,12 +2,12 @@
 
 Trong chương này, chúng ta sẽ tìm hiểu về những tính năng sau của Python thông qua ví dụ class `Vector` nhiều chiều:
 
-*   Basic sequence protocol: `__len__` and `__getitem__` .
-*   Safe representation of instances with many items.
-*   Proper slicing support, producing new `Vector` instances.
-*   Aggregate hashing taking into account every contained element value.
-*   Custom formatting language extension.
-*   Dynamic attribute access with `__getattr__`
+-   Basic sequence protocol: `__len__` and `__getitem__` .
+-   Safe representation of instances with many items.
+-   Proper slicing support, producing new `Vector` instances.
+-   Aggregate hashing taking into account every contained element value.
+-   Custom formatting language extension.
+-   Dynamic attribute access with `__getattr__`
 
 ## Make Vector Compatible with Vector2d
 
@@ -54,8 +54,8 @@ class Vector(object):
 ```
 Một vài chú ý:
 
-*   `__init__` constructor của class `Vector` không tương thích với Vector2d. Ta có thể khiến chúng tương thích nhau bằng cách sử dụng cú pháp `*args`. Tuy nhiên, các tốt nhất để viết constructor cho một kiểu sequence đó là lấy tham số kiểu iterable, giống như cách mà các built-in sequences làm
-*   Sử dụng `reprlib.repr()` để tạo ra một xâu đại diện ngắn gọn cho một `Vector` nhiều chiều (các chiều về sau được rút gọn thành dấu `...`). Bởi lẽ `rpr()` giúp phục vụ mục đích debugging, một `Vector` chiếm quá nhiều dòng trong file log sẽ không giúp được gì ngoài việc gây thêm rắc rối
+-   `__init__` constructor của class `Vector` không tương thích với Vector2d. Ta có thể khiến chúng tương thích nhau bằng cách sử dụng cú pháp `*args`. Tuy nhiên, các tốt nhất để viết constructor cho một kiểu sequence đó là lấy tham số kiểu iterable, giống như cách mà các built-in sequences làm
+-   Sử dụng `reprlib.repr()` để tạo ra một xâu đại diện ngắn gọn cho một `Vector` nhiều chiều (các chiều về sau được rút gọn thành dấu `...`). Bởi lẽ `rpr()` giúp phục vụ mục đích debugging, một `Vector` chiếm quá nhiều dòng trong file log sẽ không giúp được gì ngoài việc gây thêm rắc rối
 
 ## Protocol and Duck Typing
 
@@ -111,10 +111,10 @@ slice(1, 4, 2)
 ```
 *Nhận xét:*
 
-*   Ta implement phương thức `__getitem__` sao cho nó trả về chính tham số mà nó nhận vào, mục đích là để xem python sử dụng phương thức này như thế nào khi slice một sequence
-*   Nếu chỉ truy cập đến một phần tử, hay index là kiểu `int`, phương thức `__getitem__` sử dụng chính index đó
-*   Nếu ta dùng cú pháp slicing, index được sử dụng với cú pháp `start:stop:step` thì nó sẽ được chuyển thành một đối tượng `slice(start:stop:step)` khi truyền index vào hàm `__getitem__`
-*   Nếu index là một tuple (trong cú pháp `s[1:4:2, 7:9]`), nó cũng sẽ chuyển thành tuple của các slice tương ứng. Tuy nhiên, sequence trong Python nhìn chung không hỗ trợ slicing với đầu vào là tuple, bởi vậy, nếu index là tuple thì nên có một ngoại lệ `TypeError` được báo
+-   Ta implement phương thức `__getitem__` sao cho nó trả về chính tham số mà nó nhận vào, mục đích là để xem python sử dụng phương thức này như thế nào khi slice một sequence
+-   Nếu chỉ truy cập đến một phần tử, hay index là kiểu `int`, phương thức `__getitem__` sử dụng chính index đó
+-   Nếu ta dùng cú pháp slicing, index được sử dụng với cú pháp `start:stop:step` thì nó sẽ được chuyển thành một đối tượng `slice(start:stop:step)` khi truyền index vào hàm `__getitem__`
+-   Nếu index là một tuple (trong cú pháp `s[1:4:2, 7:9]`), nó cũng sẽ chuyển thành tuple của các slice tương ứng. Tuy nhiên, sequence trong Python nhìn chung không hỗ trợ slicing với đầu vào là tuple, bởi vậy, nếu index là tuple thì nên có một ngoại lệ `TypeError` được báo
 
 Từ ví dụ trên, ta biết rằng, hai đầu vào hợp lệ của hàm `__getitem__` khi nó được gọi bởi trình thông dịch đó là kiểu `int` và kiểu `slice`. Bây giờ ta sẽ implement phương thức này sao cho nó xử lý được với các đầu vào khác nhau như sau:
 
@@ -134,11 +134,11 @@ Từ ví dụ trên, ta biết rằng, hai đầu vào hợp lệ của hàm `__
 
 *Chú ý:*
 
-*   Nếu index thuộc kiểu `slice`, slice `_components` theo index được một `array` và dùng `array` này để tạo ra một đối tượng `Vector` mới. Như vậy, khi slice một `Vector` ta sẽ nhận về một `Vector`, đúng như mong muốn
+-   Nếu index thuộc kiểu `slice`, slice `_components` theo index được một `array` và dùng `array` này để tạo ra một đối tượng `Vector` mới. Như vậy, khi slice một `Vector` ta sẽ nhận về một `Vector`, đúng như mong muốn
 
-*   Nếu index là kiểu `int` hoặc kiểu số nguyên khác, trả về phần tử ở vị trí tương ứng trong `_components`
+-   Nếu index là kiểu `int` hoặc kiểu số nguyên khác, trả về phần tử ở vị trí tương ứng trong `_components`
 
-*   Với các đầu vào khác, báo lỗi đầu vào không hợp lệ (bắt chước theo các built-in sequences). Chú ý cú pháp format string đã được nói đến trong chương 9
+-   Với các đầu vào khác, báo lỗi đầu vào không hợp lệ (bắt chước theo các built-in sequences). Chú ý cú pháp format string đã được nói đến trong chương 9
 
 Bây giờ, ta có thể slice `Vector` giống như slice các kiểu built-in khác:
 
@@ -165,8 +165,8 @@ Khi implement một `Vector` nhiều chiều, ta đã làm mất đi tính chấ
 Tất nhiên ta có cách để khắc phục vấn đề này, dù việc đó không thực sự cần thiết. Dưới đây ta sẽ bàn đến hai magic methods khác, đó là `__getattr__` và `__setattr__`.
 
 Đầu tiên là `__getattr__`, nó được sử dụng nhằm mục đích:
-*   Định nghĩa cách tra cứu một thuộc tính không nằm trong đối tượng
-*   Có vai trò như *getter* chống truy cập trái phép tới thuộc tính này
+-   Định nghĩa cách tra cứu một thuộc tính không nằm trong đối tượng
+-   Có vai trò như *getter* chống truy cập trái phép tới thuộc tính này
 
 Python tra cứu thuộc tính `x` của đối tượng `obj` như sau:
 
@@ -205,8 +205,8 @@ Sử dụng `__setattr__` để chỉ định cách thức gán giá trị nào 
 
 *Chú ý:*
 
-*   Khi `__setattr__` được implement, phương thức này được gọi thay cho cách gán thông thường (thêm `name:value` trực tiếp vào `__dict__`)
-*   Trong `__setattr__`, tốt nhất không nên tồn tại cú pháp `self.name=value`, nó sẽ khiến phương thức này bị gọi lại lần nữa và chương trình bị rơi vào vòng lặp vô hạn. Hai cách nên được dùng khi gán attribute trong `__setattr__` là:
+-   Khi `__setattr__` được implement, phương thức này được gọi thay cho cách gán thông thường (thêm `name:value` trực tiếp vào `__dict__`)
+-   Trong `__setattr__`, tốt nhất không nên tồn tại cú pháp `self.name=value`, nó sẽ khiến phương thức này bị gọi lại lần nữa và chương trình bị rơi vào vòng lặp vô hạn. Hai cách nên được dùng khi gán attribute trong `__setattr__` là:
     1.  Gán trực tiếp vào `dict`:
         ```python
         self.__dict__[name] = value
@@ -215,7 +215,7 @@ Sử dụng `__setattr__` để chỉ định cách thức gán giá trị nào 
         ```python
         super().__setattr__(name, value)
         ```
-*   Cách gán thứ 2 được khuyên dùng, bởi vì nếu base class cũng implement phương thức `__setattr__`, quá trình kiểm tra điều kiện khi gán được thực hiện tiếp ở lớp này, sau đó mới gán giá trị (hoặc có thể chuyển đến nút tiếp theo, cho tới tận nút gốc là `object`).
+-   Cách gán thứ 2 được khuyên dùng, bởi vì nếu base class cũng implement phương thức `__setattr__`, quá trình kiểm tra điều kiện khi gán được thực hiện tiếp ở lớp này, sau đó mới gán giá trị (hoặc có thể chuyển đến nút tiếp theo, cho tới tận nút gốc là `object`).
 
 ## Make Vector Hashable and Faster in Comparision
 
@@ -244,9 +244,9 @@ Code phương thức `__eq__` ở trên rõ ràng là chưa tối ưu, ta phải
 
 *Chú ý*:
 
-*   Hàm `all` có thể nhận tham số là một generator expression, giúp phép so sánh các phần tử thuộc hai chuỗi trông ngắn gọn và bắt mắt hơn (bên cạnh việc tăng tốc so sánh nhờ các cơ chế tính toán song song được cài đặt)
+-   Hàm `all` có thể nhận tham số là một generator expression, giúp phép so sánh các phần tử thuộc hai chuỗi trông ngắn gọn và bắt mắt hơn (bên cạnh việc tăng tốc so sánh nhờ các cơ chế tính toán song song được cài đặt)
 
-*   `zip` là hàm tiện ích hỗ trợ lặp đồng thời qua các sequences. Nó tạo ra một generator, trong mỗi bước lặp, generator này yield một tuple chứa các phần tử có cùng index của các sequence được truyền vào. Chú ý rằng `zip` sẽ dừng sau khi duyệt xong chuỗi ngắn nhất
+-   `zip` là hàm tiện ích hỗ trợ lặp đồng thời qua các sequences. Nó tạo ra một generator, trong mỗi bước lặp, generator này yield một tuple chứa các phần tử có cùng index của các sequence được truyền vào. Chú ý rằng `zip` sẽ dừng sau khi duyệt xong chuỗi ngắn nhất
 
 ## Fancy Formatted Vector
 
@@ -281,17 +281,17 @@ Cụ thể, ta sẽ dùng ký tự 'h' để định nghĩa format suffix cho c�
 
 *Chú ý:*
 
-*   `itertools.chain` là hàm giúp tạo một iterator duyệt qua lần lượt tất cả các chuỗi được truyền vào hàm
+-   `itertools.chain` là hàm giúp tạo một iterator duyệt qua lần lượt tất cả các chuỗi được truyền vào hàm
 
 ## Chapter Summary
 
-*   Create customize sequences that can act like built-in sequences just by implementing `__getitem__` và `__len__`. These mechanisms are called protocol - the informal interfaces used in duck-typed language
+-   Create customize sequences that can act like built-in sequences just by implementing `__getitem__` và `__len__`. These mechanisms are called protocol - the informal interfaces used in duck-typed language
 
-*   Create Vectors that can be sliced properly by handling different types of argument in `__getitem__` method
+-   Create Vectors that can be sliced properly by handling different types of argument in `__getitem__` method
 
-*   Implement `__getattr__` to tell Python how to get attributes that are not pre-defined in the object
+-   Implement `__getattr__` to tell Python how to get attributes that are not pre-defined in the object
 
-*   Implement `__setattr__` to apply restrictions when assigning attributes
+-   Implement `__setattr__` to apply restrictions when assigning attributes
 
-*   Apply reduce functions on sequences (`all`, `sum`, `reduce(operator.xor)`, ...)
+-   Apply reduce functions on sequences (`all`, `sum`, `reduce(operator.xor)`, ...)
 

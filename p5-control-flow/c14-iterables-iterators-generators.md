@@ -8,12 +8,12 @@ Key word `yeild` là từ khóa giúp khởi tạo ra generators, hay chính là
 
 Tất cả collection trong Python đều là iterable, và các iterators được dùng để hỗ trợ cho các thao tác:
 
-*   Lặp với `for`
-*   Khởi tạo và mở rộng các collections
-*   Duyệt text files theo dòng
-*   `list`, `dict` và `set` comprehensions
-*   `tuple` unpacking
-*   unpack tham số truyền vào hàm với toán tử `*`
+-   Lặp với `for`
+-   Khởi tạo và mở rộng các collections
+-   Duyệt text files theo dòng
+-   `list`, `dict` và `set` comprehensions
+-   `tuple` unpacking
+-   unpack tham số truyền vào hàm với toán tử `*`
 
 ## Sentence Class Example
 
@@ -48,12 +48,12 @@ class Sentence(object):
 
 *Chú ý:*
 
-*   `re` là công cụ giúp thao tác với regular expressions của Python
-    *   `\w` tương đương với `[a-zA-Z0-9_]`
-    *   `re.compile(str)`: tạo ra đối tượng lưu trữ pattern là xâu được truyền vào
-    *   `RE_WORD.findall(text)`: trả về danh sách các kết quả thỏa mãn pattern lưu bởi `RE_WORD` không giẫm lên nhau trong xâu `text`
+-   `re` là công cụ giúp thao tác với regular expressions của Python
+    -   `\w` tương đương với `[a-zA-Z0-9_]`
+    -   `re.compile(str)`: tạo ra đối tượng lưu trữ pattern là xâu được truyền vào
+    -   `RE_WORD.findall(text)`: trả về danh sách các kết quả thỏa mãn pattern lưu bởi `RE_WORD` không giẫm lên nhau trong xâu `text`
 
-*   Sequence protocol yêu cầu implement cả `__getitem__` và `__len__`, nhưng để tạo ra iterators thì chỉ cần `__getitem__`
+-   Sequence protocol yêu cầu implement cả `__getitem__` và `__len__`, nhưng để tạo ra iterators thì chỉ cần `__getitem__`
 
 Giờ ta có thể sử dụng Sentence như là một sequence:
 
@@ -81,9 +81,9 @@ The, time, has, come, the, Walrus, said
 
 Mỗi khi trình thông dịch cần duyệt qua một object `x`, nó sẽ gọi hàm `iter(x)`. Hàm này thực hiện các thao tác sau:
 
-*   Kiểm tra xem đối tượng có implement `__iter__` không, nếu có thì gọi đến phương thức đó để lấy về một iterator
-*   Nếu `__iter__` không được implement nhưng `__getitem__` có, Python tạo ra một iterator và đọc từng item của object một cách lần lượt, bắt đầu từ 0
-*   Trường hợp còn lại, raise `TypeError`, báo rằng đối tượng không là iterable
+-   Kiểm tra xem đối tượng có implement `__iter__` không, nếu có thì gọi đến phương thức đó để lấy về một iterator
+-   Nếu `__iter__` không được implement nhưng `__getitem__` có, Python tạo ra một iterator và đọc từng item của object một cách lần lượt, bắt đầu từ 0
+-   Trường hợp còn lại, raise `TypeError`, báo rằng đối tượng không là iterable
 
 Bởi vì sequence được implement `__getitem__` nên chúng đều là iterable. Thực tế, các standard sequence implement `__iter__` và bạn cũng nên làm điều đó. Việc fallback về `__getitem__` chỉ để phục vụ tương thích ngược và tính năng này có thể không còn trong các phiên bản Python tương lai.
 
@@ -97,8 +97,8 @@ Tuy nhiên, cách làm tốt nhất vẫn là sử dụng khối `try...except` 
 
 ### Iterables vs Iterators
 
-*   Iterator là đối tượng được dùng để duyệt qua một collection
-*   Iterable là đối tượng có thể được dùng trong phương thức `iter`, trả về một *iterator*
+-   Iterator là đối tượng được dùng để duyệt qua một collection
+-   Iterable là đối tượng có thể được dùng trong phương thức `iter`, trả về một *iterator*
 
 `str` cũng là iterable, dưới đây là cú pháp duyệt qua một xâu:
 
@@ -171,9 +171,9 @@ Không nên biến một Sequence thành một Iterator. Bạn có thể impleme
 
 Theo định nghĩa, Iterator design pattern được dùng để:
 
-*   Truy cập đến nội dung của một đối tượng mà không để lộ trạng thái biểu diễn bên trong của nó
-*   Hỗ trợ nhiều yêu cầu duyệt nội dung một đối tượng một cách đồng thời
-*   Cung cấp một interface thống nhất để duyệt qua các đối tượng có nhiều cấu trúc khác nhau
+-   Truy cập đến nội dung của một đối tượng mà không để lộ trạng thái biểu diễn bên trong của nó
+-   Hỗ trợ nhiều yêu cầu duyệt nội dung một đối tượng một cách đồng thời
+-   Cung cấp một interface thống nhất để duyệt qua các đối tượng có nhiều cấu trúc khác nhau
 
 Dễ thấy, việc biến sequence thành iterator phá hỏng cả ba mục đích trên. Đó là lí do cần phải tạo ra một iterator riêng cho class.
 
@@ -286,14 +286,14 @@ Generator expressions có thể được sử dụng để thay thế cho nhữn
 
 Ưu điểm:
 
-*   Tiết kiệm bộ nhớ hơn list comprehensions
-*   Gọn gàng hơn generator functions
-*   Tính khả đọc cao
+-   Tiết kiệm bộ nhớ hơn list comprehensions
+-   Gọn gàng hơn generator functions
+-   Tính khả đọc cao
 
 Khi nào ưu tiên dùng generator function hơn:
 
-*   Khi logic xử lý để tạo generator phức tạp hơn một dòng (logical line)
-*   Khi cần sử dụng lại (vì functions có tên, expressions thì không)
+-   Khi logic xử lý để tạo generator phức tạp hơn một dòng (logical line)
+-   Khi cần sử dụng lại (vì functions có tên, expressions thì không)
 
 ## Arithmetic Progression Generator Example
 
@@ -321,8 +321,8 @@ class ArithmeticProgression:
 
 *Chú ý*:
 
-*   #1: Kiểu của `result` là kiểu lớn hơn giữa `begin` và `step`. `result` được khởi tạo bằng `begin`
-*   #2: Thay vì cộng thêm `step` tại mỗi bước cho `result`, ta tính trực tiếp từ `begin` và `step` để tránh sai số cộng dồn đối với kiểu số thực
+-   #1: Kiểu của `result` là kiểu lớn hơn giữa `begin` và `step`. `result` được khởi tạo bằng `begin`
+-   #2: Thay vì cộng thêm `step` tại mỗi bước cho `result`, ta tính trực tiếp từ `begin` và `step` để tránh sai số cộng dồn đối với kiểu số thực
 
 Ví dụ sử dụng:
 
@@ -363,9 +363,9 @@ def aritprog_gen(begin, step, end=None):
 
 Module `itertools` (Functions creating iterators for efficient looping) trong Python 3.4 có 19 generator functions có thể kết hợp với nhau một cách thú vị. Danh sách đầy đủ nằm ở [đây](https://docs.python.org/3.6/library/itertools.html), dưới đây là một vài ví dụ:
 
-*   `itertools.count(start, step)`: Tạo một biến đếm chạy đến vô cùng
-*   `itertools.takewhile(condition, other_generator)`: Chạy `other_generator` cho đến khi `condition` đạt `False`
-*   Kết hợp hai công cụ này để viết hàm cấp số cộng:
+-   `itertools.count(start, step)`: Tạo một biến đếm chạy đến vô cùng
+-   `itertools.takewhile(condition, other_generator)`: Chạy `other_generator` cho đến khi `condition` đạt `False`
+-   Kết hợp hai công cụ này để viết hàm cấp số cộng:
     ```python
     def aritprog_gen(begin, step, end=None):
         first = type(begin + step)(begin)
@@ -379,54 +379,54 @@ Module `itertools` (Functions creating iterators for efficient looping) trong Py
 
 Bộ thư viện chuẩn của Python chứa rất nhiều generators hữu dụng:
 
-*   Phương thức `readline` cho file objects đọc từng dòng của file
-*   Hàm `os.walk` yields tên file khi duyệt qua một cây thư mục, giúp cho việc tìm kiếm trên cây thư mục trở nên dễ dàng với vòng lặp for
+-   Phương thức `readline` cho file objects đọc từng dòng của file
+-   Hàm `os.walk` yields tên file khi duyệt qua một cây thư mục, giúp cho việc tìm kiếm trên cây thư mục trở nên dễ dàng với vòng lặp for
 
 *Filtering generator functions:*
 
-*   `itertools.compress(it, selector_it)`: yields items của `it` nếu như item tương ứng của `selector_it` là "đúng"
-*   `itertools.dropwhile(predicate, it)`: lọc ra các phần tử liên tục đầu tiên mà `predicate` đạt `True`, in ra các phần tử còn lại
+-   `itertools.compress(it, selector_it)`: yields items của `it` nếu như item tương ứng của `selector_it` là "đúng"
+-   `itertools.dropwhile(predicate, it)`: lọc ra các phần tử liên tục đầu tiên mà `predicate` đạt `True`, in ra các phần tử còn lại
     ```python
     >>> list(dropwhile(lambda x: 5 > x, [1, 4, 6, 4, 1]))
     [6, 4, 1]
     ```
-*   `filter(predicate, it)`: yields item của `it` nếu `predicate` tại `item` đạt `True`
-*   `itertools.filterfalse`: ngược lại với `filter`
-*   `itertools.islice`: Iterator slicing, tương tự như list slicing
-*   `itertools.takewhile`: Ví dụ ở trên
+-   `filter(predicate, it)`: yields item của `it` nếu `predicate` tại `item` đạt `True`
+-   `itertools.filterfalse`: ngược lại với `filter`
+-   `itertools.islice`: Iterator slicing, tương tự như list slicing
+-   `itertools.takewhile`: Ví dụ ở trên
 
 *Mapping generator functions:*
 
-*   `itertools.accumulate(it, [func])`: yields tổng của n số hạng đầu tiên trong `func(it)`
+-   `itertools.accumulate(it, [func])`: yields tổng của n số hạng đầu tiên trong `func(it)`
     ```python
     >>> list(itertools.accumulate([1, 2, 3, 4]))
     [1, 3, 6, 10]
     ```
-*   `enumerate(iterable, start=0)`: yields các tuple đôi `(index, item)` từ `iterable`, trong đó index đánh số từ `start`
-*   `map(func, it1[, it2, ..., itN])`: Tính `func` trên tham số là các phần tử đọc vào từ cả `it`, yield kết quả
-*   `itertools.starmap(func, it)`: Dùng thay `map` nếu `it = zip(it1, it2, ...itN)`
+-   `enumerate(iterable, start=0)`: yields các tuple đôi `(index, item)` từ `iterable`, trong đó index đánh số từ `start`
+-   `map(func, it1[, it2, ..., itN])`: Tính `func` trên tham số là các phần tử đọc vào từ cả `it`, yield kết quả
+-   `itertools.starmap(func, it)`: Dùng thay `map` nếu `it = zip(it1, it2, ...itN)`
 
 *Generator functions that merge multiple input iterables*
 
-*   `itertools.chain(it1, ..., itN)`: yields tất cả các item từ các `it` nối đuôi nhau
-*   `itertools.product(it1, ..., itN)`: yields tích Đề các của các `it` đầu vào
-*   `zip(it1, ..., itN)`: zip các itertors
-*   `itertools.zip_longest(it1, .., itN, fillvalue=None)`: Tương tự `zip`, nhưng mà zip theo chuỗi dài nhất, các chuỗi ngắn hơn sẽ được tự động điền thêm `fillvalue`
+-   `itertools.chain(it1, ..., itN)`: yields tất cả các item từ các `it` nối đuôi nhau
+-   `itertools.product(it1, ..., itN)`: yields tích Đề các của các `it` đầu vào
+-   `zip(it1, ..., itN)`: zip các itertors
+-   `itertools.zip_longest(it1, .., itN, fillvalue=None)`: Tương tự `zip`, nhưng mà zip theo chuỗi dài nhất, các chuỗi ngắn hơn sẽ được tự động điền thêm `fillvalue`
 
 *Generator functions that expand each input item into multiple output items*
 
-*   `itertools.combinations(it, out_len)`: yields các tổ hợp độ dài `out_len` của các phần tử nằm trong `it`
-*   `itertools.combinations_with_replacement(it, out_len)`: yields tất cả các tổ hợp lặp độ dài `out_len` của các phần tử nằm trong `it`
-*   `itertools.permutations(it, out_len=None)`: yields các chỉnh hợp độ dài `out_len` của các phần tử nằm trong `it`
-*   `itertools.count`: Tạo ra biến đếm đến vô cực
-*   `itertools.cycle(it)`: yields các phần tử của it từ đầu tới cuối rồi lặp lại vô hạn lần
-*   `itertools.repeat(item[, times])`: yields một phần tử vô hạn lần, hoặc đến số lần bằng `times`
+-   `itertools.combinations(it, out_len)`: yields các tổ hợp độ dài `out_len` của các phần tử nằm trong `it`
+-   `itertools.combinations_with_replacement(it, out_len)`: yields tất cả các tổ hợp lặp độ dài `out_len` của các phần tử nằm trong `it`
+-   `itertools.permutations(it, out_len=None)`: yields các chỉnh hợp độ dài `out_len` của các phần tử nằm trong `it`
+-   `itertools.count`: Tạo ra biến đếm đến vô cực
+-   `itertools.cycle(it)`: yields các phần tử của it từ đầu tới cuối rồi lặp lại vô hạn lần
+-   `itertools.repeat(item[, times])`: yields một phần tử vô hạn lần, hoặc đến số lần bằng `times`
 
 *Rearranging generator functions*
 
-*   `itertools.groupby(it, key=None)`: yields các tuple kép `(key, group)`, các phần tử có cùng `key` thì thuộc cùng `group` và `group` cũng là generator yields từng phần tử của nó
-*   `reversed(seq)`: yields từng phần tử của sequence theo thứ tự ngược lại
-*   `itertools.tee(it, n=2)`: tạo ra tuple của n generator cùng duyệt qua `it`
+-   `itertools.groupby(it, key=None)`: yields các tuple kép `(key, group)`, các phần tử có cùng `key` thì thuộc cùng `group` và `group` cũng là generator yields từng phần tử của nó
+-   `reversed(seq)`: yields từng phần tử của sequence theo thứ tự ngược lại
+-   `itertools.tee(it, n=2)`: tạo ra tuple của n generator cùng duyệt qua `it`
 
 ## The yield from Syntax
 

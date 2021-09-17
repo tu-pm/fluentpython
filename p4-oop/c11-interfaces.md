@@ -1,7 +1,7 @@
 # Interfaces: From Protocols to ABCs
 
-*   Protocols: Dynamic duck-typing
-*   ABCs (Abstract Base Classes): make explicit interfaces and verify implementations for conformance
+-   Protocols: Dynamic duck-typing
+-   ABCs (Abstract Base Classes): make explicit interfaces and verify implementations for conformance
 
 ## Interfaces and Protocols in Python Culture
 
@@ -95,11 +95,11 @@ Dưới đây là biểu đồ UML các ABCs trong module `collections.abc`:
 
 ![alt text](./images/abcs.png)
 
-*   `Iterable`, `Container`, và `Sized`: Tất cả các collection implement dựa vào interface (không dùng protocol) nên implement cả ba lớp này. `Iterable` hỗ trợ thao tác duyệt với `__iter__`, `Container` hỗ trợ toán tử `in` với phương thức `__contains__` và `Sized` hỗ trợ `len()` với phương thức `__len__`
-*   `Sequence`, `Mapping` và `Set`: Đây là các kiểu immutable collections đặc trưng, mỗi loại đều có một subclass mutable tương ứng: `MutableSequence`, `MutableMapping` và `MutableSet`
-*   `MappingView`: Hỗ trợ các phương thức mapping. `ItemsView` hỗ trợ `.items()`, `ValuesView` hỗ trợ `.values()`, `KeysView` hỗ trợ `.keys()`
-*   `Callable`và `Hashable`: Chức năng chính là để hỗ trợ `isinstance` kiểm tra xem một object có là callable hay hashable không
-*   `Iterator`: Thừa kế `Iterable`, sẽ được bàn đến ở chương 14
+-   `Iterable`, `Container`, và `Sized`: Tất cả các collection implement dựa vào interface (không dùng protocol) nên implement cả ba lớp này. `Iterable` hỗ trợ thao tác duyệt với `__iter__`, `Container` hỗ trợ toán tử `in` với phương thức `__contains__` và `Sized` hỗ trợ `len()` với phương thức `__len__`
+-   `Sequence`, `Mapping` và `Set`: Đây là các kiểu immutable collections đặc trưng, mỗi loại đều có một subclass mutable tương ứng: `MutableSequence`, `MutableMapping` và `MutableSet`
+-   `MappingView`: Hỗ trợ các phương thức mapping. `ItemsView` hỗ trợ `.items()`, `ValuesView` hỗ trợ `.values()`, `KeysView` hỗ trợ `.keys()`
+-   `Callable`và `Hashable`: Chức năng chính là để hỗ trợ `isinstance` kiểm tra xem một object có là callable hay hashable không
+-   `Iterator`: Thừa kế `Iterable`, sẽ được bàn đến ở chương 14
 
 ### ABCs in **`numbers`**
 
@@ -124,10 +124,10 @@ Chú ý, các phương thức in nghiêng là abstract methods.
 
 Trong đó `Tombola` là ABC định nghĩa ra một class có chức năng như trong yêu cầu một cách hợp lệ. các phương thức của nó là:
 
-*   *`.load(...)`*: thêm item vào container
-*   *`.pick()`*: loại bỏ một phần tử ngẫu nhiên nằm trong container và trả về nó
-*   `.loaded()`: trả về True nếu như có ít nhất một item nằm trong container
-*   `.inspect()`: trả về một `tuple` được sắp xếp được tạo từ các items nằm trong container mà không làm thay đổi nội dung của nó
+-   *`.load(...)`*: thêm item vào container
+-   *`.pick()`*: loại bỏ một phần tử ngẫu nhiên nằm trong container và trả về nó
+-   `.loaded()`: trả về True nếu như có ít nhất một item nằm trong container
+-   `.inspect()`: trả về một `tuple` được sắp xếp được tạo từ các items nằm trong container mà không làm thay đổi nội dung của nó
 
 Các class phía dưới hoặc thừa kế, hoặc sử dụng (register) ABC này.
 
@@ -166,9 +166,9 @@ class Tombola(abc.ABC):
 
 *Chú ý:*
 
-*   Sử dụng decorator `abc.abstractmethod` để định nghĩa abstract methods
-*   Abstract methods thường để trống, chỉ có docstring cho phương thức
-*   Phương thức `inspect` cho thấy ta có thể implement phương thức cụ thể nằm trong một ABC class, miễn là nó chỉ sử dụng các phương thức khác nằm trong class đó
+-   Sử dụng decorator `abc.abstractmethod` để định nghĩa abstract methods
+-   Abstract methods thường để trống, chỉ có docstring cho phương thức
+-   Phương thức `inspect` cho thấy ta có thể implement phương thức cụ thể nằm trong một ABC class, miễn là nó chỉ sử dụng các phương thức khác nằm trong class đó
 
 Hãy xem cách mà `Tombola` kiểm tra các class implement nó:
 
@@ -192,18 +192,18 @@ TypeError: Can't instantiate abstract class Fake with abstract methods load
 
 Cú pháp sử dụng (thừa kế) một `abc.ABC` class trong các phiên bản Python khác nhau:
 
-*   Python 2: 
+-   Python 2: 
     ```python
     class Tombola(object):
     __metaclass__ = abc.ABCMeta
     # ...
     ```
-*   Python 3, version &lt; 3.4:
+-   Python 3, version &lt; 3.4:
     ```python
     class Tombola(metaclass=abc.ABCMeta):
         #...
     ```
-*   Python 3.4+:
+-   Python 3.4+:
     ```python
     class Tombola(abc.ABC)
     ```
@@ -222,8 +222,8 @@ Chú ý rằng, `@abc.abstractmethod` là decorator nằm trong cùng trên ch�
 ### Subclassing The Tombola ABC
 
 Dưới đây là hai class sử dụng `Tombola` interface mà ta sẽ định nghĩa:
-*   `BingoCage`: Sử dụng luôn hai phương thức `inspect` và `loaded` của `Tombola`
-*   `LotteryBlower`: Overwrite hai phương thức trên để việc tính toán hiệu quả hơn
+-   `BingoCage`: Sử dụng luôn hai phương thức `inspect` và `loaded` của `Tombola`
+-   `LotteryBlower`: Overwrite hai phương thức trên để việc tính toán hiệu quả hơn
 
 ```python
 import random
@@ -251,8 +251,8 @@ class BingoCage(Tombola):
 
 *Chú ý:*
 
-*   Phương thức `load` nạp thêm các phần tử từ một iterable vào list `_items` hiện tại bằng phương thức `extend`
-*   Phương thức `pick` raise lại `LookupError` exception giống như trong docstring yêu cầu
+-   Phương thức `load` nạp thêm các phần tử từ một iterable vào list `_items` hiện tại bằng phương thức `extend`
+-   Phương thức `pick` raise lại `LookupError` exception giống như trong docstring yêu cầu
 
 ```python
 class LotteryBlower(Tombola):
@@ -313,8 +313,8 @@ class TomboList(list):
 
 *Chú ý:*
 
-*   `TomboList` được registered cho `Tombola` sử dụng decorator `@Tombola.register` (version > 3.3)
-*   Trường hợp phiên bản Python là từ 3.3 trở xuống, cú pháp hợp lệ cho quá trình register là:
+-   `TomboList` được registered cho `Tombola` sử dụng decorator `@Tombola.register` (version > 3.3)
+-   Trường hợp phiên bản Python là từ 3.3 trở xuống, cú pháp hợp lệ cho quá trình register là:
     ```python
     Tombola.register(TomboList)
     ```

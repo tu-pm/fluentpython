@@ -47,28 +47,28 @@ Biểu đồ bên trái là phả hệ hình kim cương của các lớp, bên 
 
 *Chú ý:*
 
-*   Nếu ta gọi phương thức `pong` tại một thể hiện của lớp D, phương thức `pong` của lớp B sẽ được gọi tới vì nó được khai báo trước trong chữ ký lớp của D:
+-   Nếu ta gọi phương thức `pong` tại một thể hiện của lớp D, phương thức `pong` của lớp B sẽ được gọi tới vì nó được khai báo trước trong chữ ký lớp của D:
 
     ```python
     >>> D().pong()
     pong: <__main__.D object at 0x7f279663bdd8>
     ```
-*   Nếu muốn chủ động gọi phương thức `pong` từ lớp C với thể hiện của lớp D, hãy dùng cú pháp:
+-   Nếu muốn chủ động gọi phương thức `pong` từ lớp C với thể hiện của lớp D, hãy dùng cú pháp:
 
     ```python
     >>> C.pong(D())
     PONG: <__main__.D object at 0x7f279663be10>
     ```
-*   Khi gọi đến một phương thức không được implement ở lớp hiện tại, Python bắt đầu tìm kiếm phương thức đó tại các lớp trên cây phả hệ của lớp này theo một thứ tự nhất định. Thứ tự này nằm trong trường thuộc tính `__mro__`:
+-   Khi gọi đến một phương thức không được implement ở lớp hiện tại, Python bắt đầu tìm kiếm phương thức đó tại các lớp trên cây phả hệ của lớp này theo một thứ tự nhất định. Thứ tự này nằm trong trường thuộc tính `__mro__`:
 
     ```python
     >>> D.__mro__
     (<class '__main__.D'>, <class '__main__.B'>, <class '__main__.C'>, <class '__main__.A'>, <class 'object'>)
     ```
 
-*   Khi cần gọi đến một phương thức nào đó ở một trong các lớp tổ tiên, cách được đề xuất là sử dụng `super()`, hạn chế việc 'hard-code' `C.ping(self)`
+-   Khi cần gọi đến một phương thức nào đó ở một trong các lớp tổ tiên, cách được đề xuất là sử dụng `super()`, hạn chế việc 'hard-code' `C.ping(self)`
 
-*   `super()` và `self` cùng duyệt qua các lớp trong danh sách `__mro__` để quyết định việc thực hiện lời gọi phương thức ở lớp nào. Điểm khác biệt là `super()` bỏ qua lớp hiện tại trong khi `self` có kiểm tra việc lớp hiện tại có implement phương thức này hay không
+-   `super()` và `self` cùng duyệt qua các lớp trong danh sách `__mro__` để quyết định việc thực hiện lời gọi phương thức ở lớp nào. Điểm khác biệt là `super()` bỏ qua lớp hiện tại trong khi `self` có kiểm tra việc lớp hiện tại có implement phương thức này hay không
 
 Thuật toán phân giải thứ tự các lớp trên đồ thị thừa kế có tên là C3, có thể được tìm đọc tại [đây](https://www.python.org/download/releases/2.3/mro/)
 
@@ -120,9 +120,9 @@ Kể từ Django 1.3, khái niệm class-based view xuất hiện, đi kèm vớ
 
 Trong đó:
 
-*   `View` là lớp cơ sở cho tất cả các views và cung cấp các chức năng chính như phương thức `dispatch`, phương thức này ủy nhiệm cho các phương thức "handler" như `get`, `head`, `post` ở các lớp con. Ví dụ `RedirectView` thừa kế `View`, implement tất  cả các phương thức này, trong khi `TemplateView` cũng thừa kế `View` nhưng chỉ implement `get`
+-   `View` là lớp cơ sở cho tất cả các views và cung cấp các chức năng chính như phương thức `dispatch`, phương thức này ủy nhiệm cho các phương thức "handler" như `get`, `head`, `post` ở các lớp con. Ví dụ `RedirectView` thừa kế `View`, implement tất  cả các phương thức này, trong khi `TemplateView` cũng thừa kế `View` nhưng chỉ implement `get`
 
-*   `TemplateResponseMixin` cung cấp các chức năng cho các views sử dụng một template nào đó. Ví dụ như `Redirect` view không chứa content nên không cần sử dụng template và bởi vậy không thừa kế mixin này
+-   `TemplateResponseMixin` cung cấp các chức năng cho các views sử dụng một template nào đó. Ví dụ như `Redirect` view không chứa content nên không cần sử dụng template và bởi vậy không thừa kế mixin này
 
 Đây là một ví dụ khác về module `list` cũng nằm trong package `django.views.generic`:
 
@@ -130,17 +130,17 @@ Trong đó:
 
 ## Soap box
 
-*   Bạn sẽ thường xuyên xây dựng ứng dụng hơn là framework, và ngay cả khi xây dựng framework, bạn sẽ dành nhiều thời gian để sử dụng thay vì triển khai lớp. Bởi vậy, nếu bạn bắt gặp mình đang dành nhiều thời gian để implement classes với các mối quan hệ thừa kế lằng nhằng thì tức là bạn đã làm sai:
-    *   Có thể bạn quá lạm dụng thừa kế mà bỏ quên đi nguyên lý cấu thành và ủy nhiệm
-    *   Có thể bạn đang phát minh lại cái bánh xe: ai đó đã làm điều này rồi. Hãy kiểm tra xem framework hiện tại có chức năng đó không, nếu không thì tìm framework khác
-    *   Trường hợp hãn hữu chưa có ai từng thiết kế chức năng này trong framework nào, lúc này bạn mới cần phải tự mình xây dựng chúng
+-   Bạn sẽ thường xuyên xây dựng ứng dụng hơn là framework, và ngay cả khi xây dựng framework, bạn sẽ dành nhiều thời gian để sử dụng thay vì triển khai lớp. Bởi vậy, nếu bạn bắt gặp mình đang dành nhiều thời gian để implement classes với các mối quan hệ thừa kế lằng nhằng thì tức là bạn đã làm sai:
+    -   Có thể bạn quá lạm dụng thừa kế mà bỏ quên đi nguyên lý cấu thành và ủy nhiệm
+    -   Có thể bạn đang phát minh lại cái bánh xe: ai đó đã làm điều này rồi. Hãy kiểm tra xem framework hiện tại có chức năng đó không, nếu không thì tìm framework khác
+    -   Trường hợp hãn hữu chưa có ai từng thiết kế chức năng này trong framework nào, lúc này bạn mới cần phải tự mình xây dựng chúng
 
-*   Misbehaving built-ins: bug or feature? Python không quan tâm đến những thay đổi mà bạn tạo ra khi override phương thức của kiểu built-in, bởi vì chúng đã được tối ưu nhất có thể và tính linh hoạt và mở rộng cao. Python không cho rằng trứng khôn hơn vịt nên không cho phép điều đó (=))).
+-   Misbehaving built-ins: bug or feature? Python không quan tâm đến những thay đổi mà bạn tạo ra khi override phương thức của kiểu built-in, bởi vì chúng đã được tối ưu nhất có thể và tính linh hoạt và mở rộng cao. Python không cho rằng trứng khôn hơn vịt nên không cho phép điều đó (=))).
 
-*   Thừa kế trong các ngôn ngữ khác nhau:
-    *   Ngôn ngữ đầu tiên phổ biến nhất sử dụng đa thừa kế là C++, tính năng này không được sử dụng nhiều vì tính phức tạp của nó
-    *   Java rút kinh nghiệm điều này và chỉ hỗ trợ đơn kế thừa. Kể từ Java 8 với sự xuất hiện của default method đã khiến cho Java interface trở nên rất tương đồng với mixins
-    *   Các ngôn ngữ đơn kế thừa như PHP hay Scala sử dụng traits để thay thế cho khái niệm mixin. Tương tự như mixin, traits chỉ định nghĩa một tập hợp các hàm nào đó có thể được sử dụng cho nhiều dạng đối tượng khác nhau và không thể khởi tạo đối tượng từ traits. Điểm khác biệt là mixin trong Python chỉ mang tính conventional (hoàn toàn không có gì khác biệt với một lớp thông thường) trong khi PHP có hẳn từ khóa để định nghĩa (`trait`) và sử dụng (`use`) traits cũng như có các ràng buộc chặt chẽ đối với traits.
-    *   Ruby không hỗ trợ đa kế thừa nhưng có khái niệm mixin. Một class Ruby có thể include một module bên trong nó, khiến cho các phương thức định nghĩa bởi module này trở thành một phần của class implementation
-    *   Go không có khái niệm thừa kế, chỉ có khái niệm interface implementation
-    *   Julia thay khái niệm `class` bằng `type`, các subtype chỉ thừa kế hành vi chứ không thừa kế các thuộc tính từ type cha (chỉ abstract types mới có thể được kế thừa)
+-   Thừa kế trong các ngôn ngữ khác nhau:
+    -   Ngôn ngữ đầu tiên phổ biến nhất sử dụng đa thừa kế là C++, tính năng này không được sử dụng nhiều vì tính phức tạp của nó
+    -   Java rút kinh nghiệm điều này và chỉ hỗ trợ đơn kế thừa. Kể từ Java 8 với sự xuất hiện của default method đã khiến cho Java interface trở nên rất tương đồng với mixins
+    -   Các ngôn ngữ đơn kế thừa như PHP hay Scala sử dụng traits để thay thế cho khái niệm mixin. Tương tự như mixin, traits chỉ định nghĩa một tập hợp các hàm nào đó có thể được sử dụng cho nhiều dạng đối tượng khác nhau và không thể khởi tạo đối tượng từ traits. Điểm khác biệt là mixin trong Python chỉ mang tính conventional (hoàn toàn không có gì khác biệt với một lớp thông thường) trong khi PHP có hẳn từ khóa để định nghĩa (`trait`) và sử dụng (`use`) traits cũng như có các ràng buộc chặt chẽ đối với traits.
+    -   Ruby không hỗ trợ đa kế thừa nhưng có khái niệm mixin. Một class Ruby có thể include một module bên trong nó, khiến cho các phương thức định nghĩa bởi module này trở thành một phần của class implementation
+    -   Go không có khái niệm thừa kế, chỉ có khái niệm interface implementation
+    -   Julia thay khái niệm `class` bằng `type`, các subtype chỉ thừa kế hành vi chứ không thừa kế các thuộc tính từ type cha (chỉ abstract types mới có thể được kế thừa)

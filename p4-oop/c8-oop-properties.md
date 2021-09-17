@@ -56,7 +56,7 @@ Sự khác biệt giữa hai khái niệm 'bằng nhau' và 'đồng nhất' ả
 
 Hai cách đơn giản nhất để copy một sequence là:
 
-*   Dùng built-in constructor của kiểu tương ứng:
+-   Dùng built-in constructor của kiểu tương ứng:
 
     ```python
     >>> l1 = [1, 2, 3]
@@ -67,7 +67,7 @@ Hai cách đơn giản nhất để copy một sequence là:
     False
     ```
 
-*   Dùng cú pháp slicing: **`l2 = l1[:]`**
+-   Dùng cú pháp slicing: **`l2 = l1[:]`**
 
 Tuy nhiên, theo mặc định hai cách này chỉ thực hiện shallow copy, tức là chỉ container được tạo mới, các phần tử trong sequence chỉ là các reference đến các phần tử cũ. Nếu các phần tử của sequence là immutable, cách làm này không gây hại gì, nhưng nếu ngược lại, đôi khi nó gây ra những tác dụng phụ không đáng có.
 
@@ -85,25 +85,25 @@ Chế độ truyền tham số vào hàm duy nhất hỗ trợ bởi Python cũn
 
 Hệ quả của cơ chế này đó là một hàm có thể thay thế hoàn toàn một object được truyền vào nó bởi một object khác. Ví dụ dưới đây giải thích kĩ hơn về vấn đề này
 
-*   Giả sử ta có 2 tuple **`a`** và **`b`**:
+-   Giả sử ta có 2 tuple **`a`** và **`b`**:
     ```python
     >>> a = (1, 2); b = (3, 4)
     >>> id(a)
     140445269766512
     ```
-*   Thực hiện phép toán **`a += b`**, tức là gán tuple **`a`** bằng tuple **`a + b`**, như dự đoán, id của a đã thay đổi:
+-   Thực hiện phép toán **`a += b`**, tức là gán tuple **`a`** bằng tuple **`a + b`**, như dự đoán, id của a đã thay đổi:
     ```python
     >>> a += b
     >>> id(a)
     140445270056728
     ```
-*   Bây giờ ta implement cú pháp này trong một hàm:
+-   Bây giờ ta implement cú pháp này trong một hàm:
     ```python
     def f(a, b):
         a += b
         return a
     ```
-*   Gọi hàm **`f`** với tham số **`a`** và **`b`**:
+-   Gọi hàm **`f`** với tham số **`a`** và **`b`**:
     ```python
     >>> a = (1, 2); b = (3, 4)
     >>> f(a, b)
@@ -131,7 +131,7 @@ Không nên sử dụng mutable object làm tham số mặc định cho hàm, b�
 
 Khi tạo ra một hàm nhận vào một tham số mutable, hãy cẩn thận suy xét đến trường hợp người dùng có thể thay đổi tham số đó hay không, và bởi vậy hãy có những biện pháp phòng ngừa những sự thay đổi đó.
 
-*   Nếu việc thay đổi tham số không có tác động gì đáng kể, có thể truyền nó vào hàm như bình thường:
+-   Nếu việc thay đổi tham số không có tác động gì đáng kể, có thể truyền nó vào hàm như bình thường:
 
     ```python
     ...
@@ -139,7 +139,7 @@ Khi tạo ra một hàm nhận vào một tham số mutable, hãy cẩn thận s
         self.name = name
     ...
     ```
-*   Tuy nhiên, nếu như việc thay đổi tham số có thể dẫn đến những tác động không mong muốn, hãy nhớ copy tham số đó ra trước khi sử dụng:
+-   Tuy nhiên, nếu như việc thay đổi tham số có thể dẫn đến những tác động không mong muốn, hãy nhớ copy tham số đó ra trước khi sử dụng:
 
     ```python
     import copy
@@ -171,8 +171,8 @@ Có nhiều gabage collector được implement bởi Python nhằm tự động
 
 Weak references tới đối tượng giống hệt như symbolic links tới files trong Linux với hai đặc điểm chính:
 
-*   Xóa bỏ một weak reference không ảnh hưởng gì tới đối tượng mà nó trỏ tới
-*   Nếu đối tượng chỉ còn được trỏ tới bởi các weak references, nó sẽ bị hủy và các weak references sẽ trỏ tới **`None`**
+-   Xóa bỏ một weak reference không ảnh hưởng gì tới đối tượng mà nó trỏ tới
+-   Nếu đối tượng chỉ còn được trỏ tới bởi các weak references, nó sẽ bị hủy và các weak references sẽ trỏ tới **`None`**
 
 Một usecase thường dùng là cơ chế caching, các items được lưu trữ tạm trong một bản ghi cache kiểu `dict`, khi các "hard" references tới một item bị gỡ bỏ, item cũng sẽ bị loại bỏ ra khỏi cache luôn.
 
@@ -180,39 +180,39 @@ Một usecase thường dùng là cơ chế caching, các items được lưu tr
 
 Module **`weakref`** cung cấp các class thao tác với weak references:
 
-*   **`weakref.ref(obj)`**: tạo weak reference tới `obj` 
-*   **`weakref.finalize(obj, finalizer)`**: Chạy hàm `finalizer` khi `obj` bị dọn dẹp khỏi bộ nhớ
-*   **`weakref.WeakValueDictionary`**: Tạo các weak references tới các obj và đóng chúng trong một kiểu `dict`. ***Nó có thể được dùng để gắn thêm thông tin cho một đối tượng mà không cần phải thêm thuộc tính cho nó***
-*   **`weakref.WeakSet`**: Lưu trữ các weak references trong một set. Nếu bạn cần xây dựng một lớp có khả năng kiểm soát được tất cả các thể hiện của nó, `WeakSet` là một lựa chọn tốt. Ngược lại, nếu chỉ dùng `set` thông thường, các thể hiện của lớp sẽ không bao giờ được giải phóng cho đến khi tiến trình kết thúc.
+-   **`weakref.ref(obj)`**: tạo weak reference tới `obj` 
+-   **`weakref.finalize(obj, finalizer)`**: Chạy hàm `finalizer` khi `obj` bị dọn dẹp khỏi bộ nhớ
+-   **`weakref.WeakValueDictionary`**: Tạo các weak references tới các obj và đóng chúng trong một kiểu `dict`. ***Nó có thể được dùng để gắn thêm thông tin cho một đối tượng mà không cần phải thêm thuộc tính cho nó***
+-   **`weakref.WeakSet`**: Lưu trữ các weak references trong một set. Nếu bạn cần xây dựng một lớp có khả năng kiểm soát được tất cả các thể hiện của nó, `WeakSet` là một lựa chọn tốt. Ngược lại, nếu chỉ dùng `set` thông thường, các thể hiện của lớp sẽ không bao giờ được giải phóng cho đến khi tiến trình kết thúc.
 
-#### Limintations of Weak References
+#### Limitations of Weak References
 
 Không phải tất cả các đối tượng trong Python đều hỗ trợ weak referece, đặc biệt là các kiểu built-in
 
-*   Có thể weak reference trực tiếp đến **`set`**
-*   Có thể weak reference đến subclass của **`dict`** và **`list`**
-*   Không thể weak reference đến subclass của **`int`** hat **`tuple`**
+-   Có thể weak reference trực tiếp đến **`set`**
+-   Có thể weak reference đến subclass của **`dict`** và **`list`**
+-   Không thể weak reference đến subclass của **`int`** hat **`tuple`**
 
 Lý do là bởi cơ chế cài đặt CPython bên dưới của các kiểu này sử dụng các phương thức tối ưu khác nhau.
 
 ## Summary
 
-*   Mỗi biến tạo một tham chiếu đến một đối tượng, một đối tượng có thể được tham chiếu tới bởi nhiều biến, khi nó không còn được tham chiếu nữa, nó sẽ được giải phóng bởi Python garbage collector. Dùng lệnh **`del`** nhằm loại bỏ một ham chiếu đến một đối tượng
+-   Mỗi biến tạo một tham chiếu đến một đối tượng, một đối tượng có thể được tham chiếu tới bởi nhiều biến, khi nó không còn được tham chiếu nữa, nó sẽ được giải phóng bởi Python garbage collector. Dùng lệnh **`del`** nhằm loại bỏ một ham chiếu đến một đối tượng
 
-*   Tuple là immutable, nhưng các phần tử của nó có thể là các mutable objects
+-   Tuple là immutable, nhưng các phần tử của nó có thể là các mutable objects
 
-*   Khác với các khái niệm "call by value" (truyền tham trị) và "call by reference" (truyền tham chiếu) tồn tại trong các ngôn ngữ lập trình khác, Python sử dụng khái niệm "call by sharing". Điều này có nghĩa là, khi truyền một biến vào hàm như một tham số, sẽ có một tham chiếu khác được tạo ra tới đối tượng mà biến này tham chiếu đến, và mỗi lần sử dụng biến này trong hàm, ta sử dụng tham chiếu được sao ra chứ không phải tham chiếu ban đầu. Điều này khiến ta chỉ có thể thay đổi giá trị của đối tượng (nếu đối tượng là immutable) mà không thể thay đổi định danh của biến bên ngoài phạm vi của hàm.
+-   Khác với các khái niệm "call by value" (truyền tham trị) và "call by reference" (truyền tham chiếu) tồn tại trong các ngôn ngữ lập trình khác, Python sử dụng khái niệm "call by sharing". Điều này có nghĩa là, khi truyền một biến vào hàm như một tham số, sẽ có một tham chiếu khác được tạo ra tới đối tượng mà biến này tham chiếu đến, và mỗi lần sử dụng biến này trong hàm, ta sử dụng tham chiếu được sao ra chứ không phải tham chiếu ban đầu. Điều này khiến ta chỉ có thể thay đổi giá trị của đối tượng (nếu đối tượng là immutable) mà không thể thay đổi định danh của biến bên ngoài phạm vi của hàm.
 
-*   Shallow copy một đối tượng chỉ tạo ra cái "vỏ" mới, các thuộc tính của đối tượng được copy ra chỉ là các tham chiếu khác đến vùng nhớ mà các thuộc tính tương ứng của đối tượng ban đầu trỏ đến. Ngược lại, deep copy là khởi tạo lại đối tượng, kể cả các thành phần của nó chứa (việc làm này là tốn kém tài nguyên, hãy cân nhắc sử dụng chỉ khi thực sự cần thiết). Module **`copy`** giúp shallow và deep copy một cách hiệu quả
+-   Shallow copy một đối tượng chỉ tạo ra cái "vỏ" mới, các thuộc tính của đối tượng được copy ra chỉ là các tham chiếu khác đến vùng nhớ mà các thuộc tính tương ứng của đối tượng ban đầu trỏ đến. Ngược lại, deep copy là khởi tạo lại đối tượng, kể cả các thành phần của nó chứa (việc làm này là tốn kém tài nguyên, hãy cân nhắc sử dụng chỉ khi thực sự cần thiết). Module **`copy`** giúp shallow và deep copy một cách hiệu quả
 
-*   Đối với các immutable object không chứa các mutable object (**`frozenset`**, **`int`**, **`str`**, ...), thao tác shallow copy chỉ đơn giản là tạo reference đến đối tượng cũ. Mặc dù đây là một sự dối trá, nhưng nó tiết kiệm và hoàn toàn không có sự khác biệt nào dưới con mắt người dùng
+-   Đối với các immutable object không chứa các mutable object (**`frozenset`**, **`int`**, **`str`**, ...), thao tác shallow copy chỉ đơn giản là tạo reference đến đối tượng cũ. Mặc dù đây là một sự dối trá, nhưng nó tiết kiệm và hoàn toàn không có sự khác biệt nào dưới con mắt người dùng
 
-*   Không được phép truyền một mutable object vào tham số mặc định cho hàm, bởi tất cả các đối tượng được tạo ra theo tham số mặc định chia sẻ chung tham chiếu tới nó, sự thay đổi tham số mặc định ở một đối tượng sẽ ảnh hưởng tới các đối tượng khác
+-   Không được phép truyền một mutable object vào tham số mặc định cho hàm, bởi tất cả các đối tượng được tạo ra theo tham số mặc định chia sẻ chung tham chiếu tới nó, sự thay đổi tham số mặc định ở một đối tượng sẽ ảnh hưởng tới các đối tượng khác
 
-*   Không gán thuộc tính bằng một mutable object nếu không chắc chắn rằng việc làm này không gây ảnh hưởng gì. Để đảm bảo an toàn, hãy copy đối tượng ra trước khi gán
+-   Không gán thuộc tính bằng một mutable object nếu không chắc chắn rằng việc làm này không gây ảnh hưởng gì. Để đảm bảo an toàn, hãy copy đối tượng ra trước khi gán
 
-*   Sử dụng hard reference tới một đối tượng (bằng cách gán nó cho một biến) có thể ngăn chặn nó khỏi việc bị Python garbage collector dọn dẹp, ngay cả khi ta không còn thực sự sử dụng nó nữa. Sử dụng weak reference với module **`weakref`** giúp tham chiếu tới một đối tượng chỉ khi nó còn hữu dụng
+-   Sử dụng hard reference tới một đối tượng (bằng cách gán nó cho một biến) có thể ngăn chặn nó khỏi việc bị Python garbage collector dọn dẹp, ngay cả khi ta không còn thực sự sử dụng nó nữa. Sử dụng weak reference với module **`weakref`** giúp tham chiếu tới một đối tượng chỉ khi nó còn hữu dụng
 
 ## Pythonic Programming Tricks
 
-*   Các biến tạm được sinh ra trong cấu trúc lặp `for...in` được giữ lại bên ngoài phạm vi của nó (ví dụ biến count), đây là tính năng hữu dụng vì các biến này lưu giữ giá trị được gán ở vòng lặp cuối cùng, có thể được tận dụng để sử dụng ở bên ngoài vòng lặp
+-   Các biến tạm được sinh ra trong cấu trúc lặp `for...in` được giữ lại bên ngoài phạm vi của nó (ví dụ biến count), đây là tính năng hữu dụng vì các biến này lưu giữ giá trị được gán ở vòng lặp cuối cùng, có thể được tận dụng để sử dụng ở bên ngoài vòng lặp

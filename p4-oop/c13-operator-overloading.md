@@ -4,17 +4,17 @@
 
 Sử dụng operator overloading không đúng cách có thể dẫn đến các tác dụng phụ như nhầm lẫn, bug và tạo ra các nút thắt cổ chai trong hiệu suất của toàn bộ hệ thống. Python tạo ra sự cân bằng giữa tính mềm dẻo, tính khả dụng và tính an toàn bằng cách đưa ra các ràng buộc cho thao tác đa năng hóa toán tử:
 
-*   Không thể overload toán tử cho các kiểu built-ins
-*   Không thể tạo ra toán tử mới, chỉ có thể overload những cái có sẵn
-*   Một vài toán tử không thể được overload, đó là `is`, `and`, `or` và `not` (lưu ý vẫn có thể overload các toán tử bitwise `&`, `|`, `~`)
+-   Không thể overload toán tử cho các kiểu built-ins
+-   Không thể tạo ra toán tử mới, chỉ có thể overload những cái có sẵn
+-   Một vài toán tử không thể được overload, đó là `is`, `and`, `or` và `not` (lưu ý vẫn có thể overload các toán tử bitwise `&`, `|`, `~`)
 
 ## Unary Operator
 
 Ba toán tử một ngôi trong Python là:
 
-*   `__neg__`: Số đối (-)
-*   `__pos__`: Số dương (+), trong hầu hết các trường hợp `+x == x`, các ngoại lệ rất hiếm gặp
-*   `__invert__`: Bitwise inverse (~), nếu x là số nguyên thì `~x == -(x+1)`
+-   `__neg__`: Số đối (-)
+-   `__pos__`: Số dương (+), trong hầu hết các trường hợp `+x == x`, các ngoại lệ rất hiếm gặp
+-   `__invert__`: Bitwise inverse (~), nếu x là số nguyên thì `~x == -(x+1)`
 
 Chú ý rằng, luôn trả về một đối tượng mới khác `self` khi implement các toán tử một ngôi.
 
@@ -22,9 +22,9 @@ Chú ý rằng, luôn trả về một đối tượng mới khác `self` khi im
 
 Trước khi cài đặt, hãy cân nhắc các yêu cầu cần thiết cho phép cộng hai vector:
 
-*   Tổng của hai vector là vector tổng các thành phần
-*   Khi tính tổng hai vector có độ dài khác nhau, nên coi các phần tử cuối của vector ngắn hơn bằng 0
-*   Luôn trả về vector mới
+-   Tổng của hai vector là vector tổng các thành phần
+-   Khi tính tổng hai vector có độ dài khác nhau, nên coi các phần tử cuối của vector ngắn hơn bằng 0
+-   Luôn trả về vector mới
 
 Bây giờ, hãy implement phương thức `__add__` theo yêu cầu trên cho lớp `Vector`
 
@@ -138,9 +138,9 @@ Chú ý toán tử `@` là tính năng mới của Python 3.5, cho phép thực 
 
 Các toán tử so sánh trong Python cũng được implement tương tự các toán tử tính toán trung tố ở trên, với hai điểm khác biệt chính:
 
-*   Phương thức `reverse` được implement theo quy tắc được cho bởi bảng dưới
-*   Trường hợp so sánh bằng nhau, phép toán fall back cuối cùng là so sánh id của hai đối tượng. Trường hợp so sánh khác nhau sẽ fall back về phép "không" bằng nhau (not(a==b)), do vậy ta không thực sự cần phải overload toán tử `!=`. Các trường hợp còn lại trả về `TypeError`
-*   Thật là vô nghĩa khi so sánh hai đối tượng khác kiểu nhau, bởi vậy hãy kiểm tra kiểu của đối tượng `other` trước khi implement phép so sánh bằng hàm `isinstance`
+-   Phương thức `reverse` được implement theo quy tắc được cho bởi bảng dưới
+-   Trường hợp so sánh bằng nhau, phép toán fall back cuối cùng là so sánh id của hai đối tượng. Trường hợp so sánh khác nhau sẽ fall back về phép "không" bằng nhau (not(a==b)), do vậy ta không thực sự cần phải overload toán tử `!=`. Các trường hợp còn lại trả về `TypeError`
+-   Thật là vô nghĩa khi so sánh hai đối tượng khác kiểu nhau, bởi vậy hãy kiểm tra kiểu của đối tượng `other` trước khi implement phép so sánh bằng hàm `isinstance`
 
     ![comparison-operators.png](./images/comparison-operators.png)
 
@@ -148,21 +148,21 @@ Các toán tử so sánh trong Python cũng được implement tương tự các
 
 Lớp `Vector` đã được overload phép `+` và `*`, khiến ta cũng dùng được phép `+=` và `*=` với nó luôn. Điều này là bởi vì Python tự động chuyển phép toán `a += b` thành `a = a + b`, tức là `a` đã bị gán lại cho một đối tượng mới được tạo ra:
 
-*   Nếu `a` là immutable, hành vi này là đúng như mong đợi. Bởi vậy ta không cần, cũng không nên định nghĩa lại các toán tử `in place` như `__iadd__`, `__imul__`, `__idiv__`, ... cho các kiểu immutable
-*   Nếu `a` là mutable, ta sẽ mong đợi việc thay đổi giá trị của `a` tại chỗ thay vì tạo ra đối tượng mới, bởi vậy hành vi mặc định này là không phù hợp. Lúc này ta cần implement các toán tử `in place` bằng cách sửa đổi `self` và trả về chính nó.
+-   Nếu `a` là immutable, hành vi này là đúng như mong đợi. Bởi vậy ta không cần, cũng không nên định nghĩa lại các toán tử `in place` như `__iadd__`, `__imul__`, `__idiv__`, ... cho các kiểu immutable
+-   Nếu `a` là mutable, ta sẽ mong đợi việc thay đổi giá trị của `a` tại chỗ thay vì tạo ra đối tượng mới, bởi vậy hành vi mặc định này là không phù hợp. Lúc này ta cần implement các toán tử `in place` bằng cách sửa đổi `self` và trả về chính nó.
 
 ## Soapbox
 
 Operator overloading: pros and cons
 
-*   James Gosling, người sáng lập ra Java đã quyết định không cho Java khả năng đa năng hóa toán tử, lý do ông đưa ra là bởi vì nó gây ra sự nhầm lẫn khó hiểu cho người sử dụng toán tử đã được overload, hơn nữa việc ai cũng có thể định nghĩa bất cứ toán tử nào sẽ dẫn đến sự hỗn loạn và thiếu nhất quán
+-   James Gosling, người sáng lập ra Java đã quyết định không cho Java khả năng đa năng hóa toán tử, lý do ông đưa ra là bởi vì nó gây ra sự nhầm lẫn khó hiểu cho người sử dụng toán tử đã được overload, hơn nữa việc ai cũng có thể định nghĩa bất cứ toán tử nào sẽ dẫn đến sự hỗn loạn và thiếu nhất quán
 
-*   Python tất nhiên đã có những giới hạn nhằm tránh việc đa năng hóa toán tử tùy tiện và nó đem lại lợi ích rất lớn. Một trong số đó là tính khả đọc được cải thiện đáng kể. Ví dụ về phép tính lợi nhuận trong lĩnh vực tài chính:
-    *   Trong Python:
+-   Python tất nhiên đã có những giới hạn nhằm tránh việc đa năng hóa toán tử tùy tiện và nó đem lại lợi ích rất lớn. Một trong số đó là tính khả đọc được cải thiện đáng kể. Ví dụ về phép tính lợi nhuận trong lĩnh vực tài chính:
+    -   Trong Python:
         ```python
         interest = principal * ((1 + rate) ** periods - 1)  # with all kinds of numbers that inherit from numbers.Real
 
-    *   Trong Java:
+    -   Trong Java:
         ```java
         // Simple float or double
         float interest = principal * (Math.pow(1 + rate, periods) - 1);
@@ -170,5 +170,5 @@ Operator overloading: pros and cons
         // whereas other kinds of number don't have that pretty look
         BigDecimal interest = principal.multiply(BigDecimal.ONE.add(rate).pow(periods).subtract(BigDecimal.ONE));
         ```
-*   Có thể nói, việc hỗ trợ rất tốt cho đa năng hóa toán tử là tính năng quan trọng giúp Python trở thành ngôn ngữ được lựa chọn để xây dựng nhiều thư viện tính toán khoa học và trở nên phổ biến nhất trong các lĩnh vực tính toán và đặc biệt là trí tuệ nhân tạo
+-   Có thể nói, việc hỗ trợ rất tốt cho đa năng hóa toán tử là tính năng quan trọng giúp Python trở thành ngôn ngữ được lựa chọn để xây dựng nhiều thư viện tính toán khoa học và trở nên phổ biến nhất trong các lĩnh vực tính toán và đặc biệt là trí tuệ nhân tạo
 

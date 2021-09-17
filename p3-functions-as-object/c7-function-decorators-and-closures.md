@@ -1,25 +1,41 @@
-# FluentPython-P3-C7: Function Decorators and Closures
+## Chapter 7: Function Decorators and Closures
 
-The end goal of this chapter is to explain exactly how function decorators work, from the simplest registration decorators to the rather more complicated parametrized ones.
+Mục tiêu của chương này là làm rõ cách thức hoạt động của decorators, từ các decorator đơn giản cho đến các decorator phức tạp chứa tham số.
 
-However, before we reach that goal we need to cover:
+Để đạt được mục tiêu này, ta sẽ đi tìm hiểu các vấn đề sau:
+-   Python dịch cú pháp decorator thế nào?
+-   Phạm vi biến trong Python là gì?
+-   Closure là gì?
+-   Sử dụng nonlocal như thế nào
 
-*   How Python evaluates decorator syntax
-*   How Python decides whether a variable is local
-*   Why closures exist and how they work
-*   What problem is solved by nonlocal
+Qua đó, ta có kiến thức để giải quyết những bài toán như:
+-   Implement decorator một cách chính xác
+-   Sử dụng các decorators cung cấp bởi thư viện chuẩn
+-   Implement decorator có tham số
 
-With this grounding we can tackle further decorator topics:
+---
+### Table of Contents
+- [Chapter 7: Function Decorators and Closures](#chapter-7-function-decorators-and-closures)
+  - [Table of Contents](#table-of-contents)
+  - [Decorators 101](#decorators-101)
+  - [When Python Executes Decorators](#when-python-executes-decorators)
+  - [Decorator Enhanced Strategy Pattern](#decorator-enhanced-strategy-pattern)
+  - [Variable Scope Rules](#variable-scope-rules)
+  - [Closures](#closures)
+  - [The nonlocal Declaration](#the-nonlocal-declaration)
+  - [Implementing a Simple Decorator](#implementing-a-simple-decorator)
+  - [Decorator in The Standard Library](#decorator-in-the-standard-library)
+    - [Memoization with functools.lru_cache](#memoization-with-functoolslru_cache)
+    - [Generic functions with singledispatch](#generic-functions-with-singledispatch)
+  - [Stacked Decorators](#stacked-decorators)
+  - [Parameterized Decorators](#parameterized-decorators)
 
-*   Implementing a well-behaved decorator
-*   Interesting decorators in the standard library
-*   Implementing a parametrized decorator
-
-## Decorators 101
+---
+### Decorators 101
 
 Một decorator là một callable mà lấy tham số truyền vào là một hàm khác (hàm này gọi là decorated function). Decorator thực hiện một vài thao tác xử lý trên decorated function và trả về hàm này hoặc thay thế nó bởi một callable khác
 
-Nói cách khác, đoạn code này:
+Ví dụ, đoạn code này:
 
 ```python
 @decorate
@@ -38,24 +54,24 @@ target = decorate(target)
 
 Hai điểm cần lưu ý đối với decorators:
 
-*   decorated functions sẽ bị thay thế bởi hàm mà decorator trả về
-*   Thao tác thay thế decorated function được thực hiện ngay khi module được load, chứ không phải đến khi decorated function được gọi
+-   Decorated function sẽ bị thay thế bởi hàm mà decorator trả về
+-   Thao tác thay thế decorated function được thực hiện ngay khi module được load, chứ không phải đến khi decorated function được gọi
 
-## When Python Executes Decorators
+---
+### When Python Executes Decorators
 
-Như đã nói, decorators được thực thi ngay khi module được import (ví dụ trang 185-186). Mặt khác, decorated functions chỉ chạy khi nó được gọi một cách trực tiếp. Đây chính là điểm khác biệt giữa *import time* và *run time*.
+Decorators được thực thi ngay khi module được import (*import time*). Mặt khác, decorated functions chỉ chạy khi nó được gọi một cách trực tiếp (*run time*).
 
-Thông thường, decorators được định nghĩa trong một module và có thể được sử dụng cho hàm ở module khác. Bên cạnh đó, hầu hết các decorator định nghĩa ra một inner function và trả về nó, thay vì trả về hàm ban đầu (decorated function).
+Thông thường, decorators được định nghĩa trong một module và có thể được sử dụng cho hàm ở module khác. Bên cạnh đó, hầu hết các decorator tạo ra một inner function và trả về nó, thay vì trả về hàm ban đầu (decorated function).
 
-***Trick:***
+---
+### Decorator Enhanced Strategy Pattern
 
-*   Cú pháp `'%s' % obj` có chức năng format `obj` về dạng xâu bằng cách gọi đến phương thức `__repr__` của nó
+Trong ví dụ tính discount ở chương 6 về strategy pattern, ta phải duy trì một danh sách các chiến lược promotion để sau đó hàm `best_promo` có thể đánh giá từng chiến lược trong danh sách này và đưa ra kết quả tốt nhất. Vấn đề nảy sinh nếu hard-code danh sách này đó là mỗi khi có người thêm một chiến lược discount mới, họ lại phải thêm nó vào danh sách một cách thủ công.
 
-## Decorator Enhanced Strategy Pattern
+Decorator giúp giải quyết vấn đề này một cách gọn gàng và đẹp mắt như sau:
 
-Trong ví dụ tính discount ở chương 6 về strategy pattern, ta phải duy trì một danh sách các chiến lược promotion để sau đó hàm `best_promo` có thể đánh giá từng chiến lược trong danh sách này và đưa ra kết quả tốt nhất. Vấn đề nảy sinh nếu hard-code danh sách này đó là mỗi khi có người thêm một chiến lược discount mới, họ lại phải thêm nó vào danh sách một cách thủ công. Decorator giúp giải quyết vấn đề này một cách gọn gàng và đẹp mắt:
-
-*   Bước 1: Định nghĩa decorator `promotion` có chức năng tự động thêm các chiến lược vào `promos` list:
+-   Bước 1: Định nghĩa decorator `promotion` có chức năng tự động thêm các chiến lược vào `promos` list:
     ```python
     promos = []
     
@@ -64,7 +80,7 @@ Trong ví dụ tính discount ở chương 6 về strategy pattern, ta phải du
         return promo_func
     ```
 
-*   Bước 2: Với mỗi chiến lược discount, ta thêm decorator `@promotion` phía trước, như vậy chúng sẽ được thêm vào `promos` mà không lo bị sót
+-   Bước 2: Với mỗi chiến lược discount, ta thêm decorator `@promotion` phía trước, như vậy chúng sẽ được thêm vào `promos` mà không lo bị sót
     ```python
     @promotion
     def fidelity(order):
@@ -80,27 +96,30 @@ Trong ví dụ tính discount ở chương 6 về strategy pattern, ta phải du
     ```
 
 Việc làm này đem lại nhiều tác dụng:
-
-*   Không cần quy tắc tên đặc biệt cho các hàm để chương trình có thể phân loại các hàm
-*   Làm nổi bật chức năng của hàm, tăng tính khả đọc
-*   Dễ dàng disable một promotion nào đó bằng việc comment decorator
-*   Có thể định nghĩa chiến lược discount trong module khác, miễn là chúng sử dụng decorator `@promotion`
+-   Không cần xác định hàm discount theo tên nên không cần đặt tên có quy tắc
+-   Decorator làm nổi bật chức năng của hàm, tăng tính khả đọc
+-   Dễ dàng disable một promotion nào đó bằng việc xóa/comment decorator
+-   Có thể định nghĩa chiến lược discount trong module khác, miễn là chúng sử dụng decorator `@promotion`
 
 Như đã nói, decorator hầu như đều thay thế decorated function bằng một inner function khai báo bên trong nó. Để thực hiện được điều này, cần nắm vững về closures mà trước hết là phạm vi biến trong Python.
 
-## Variable Scope Rules
+---
+### Variable Scope Rules
 
-*   Rule #1: Khi một biến được khai báo trong phạm vi của một hàm, nó mặc định là biến cục bộ. Trong trường hợp ta đã khai báo biến này bên ngoài hàm và reference đến nó bên trong hàm trước khi nó được định nghĩa lại là biến cục bộ, chương trình vẫn sẽ không chạy.
+**Rule #1:** Khi một biến được gán giá trị trong phạm vi của một hàm, nó mặc định là biến cục bộ.
 
-*   Rule #2: Sử dụng từ khóa `global` để khai báo biến toàn cục bên trong hàm
+Luật này gây ra một hiện tượng khá "kì lạ"
 
-## Closures
+**Rule #2:** Sử dụng từ khóa `global` bên trong hàm để chỉ thị một biến nào đó là biến toàn cục.
+
+---
+### Closures
 
 Closure là một hàm được định nghĩa bên trong một hàm khác, với mục đích chủ yếu là khiến nó có thể truy cập được tới những biến không toàn cục nằm bên ngoài nó (tức là nằm trong lớp chứa nó).
 
 Xét một ví dụ: Hãy định nghĩa một callable `avg` sao cho mỗi lần gọi `avg(i)` với i là một số, nó sẽ trả về trung bình cộng của tất cả tham số đã truyền vào nó từ trước đến giờ.
 
-*   Cách 1: `avg` một object có lưu một attribute là một sequence và được implement phương thức `__call__` thực hiện yêu cầu đề bài:
+-   Cách 1: `avg` một object có lưu một attribute là một sequence và được implement phương thức `__call__` thực hiện yêu cầu đề bài:
 
     ```python
     def Averager(object):
@@ -111,7 +130,7 @@ Xét một ví dụ: Hãy định nghĩa một callable `avg` sao cho mỗi lầ
             self.series.append(new_value)
             return sum(series) / len(series)
     ```
-*   Cách 2: Sử dụng function
+-   Cách 2: Sử dụng function
 
     ```python
     def make_averager():
@@ -144,7 +163,8 @@ Câu trả lời là Python đã lưu lại các biến cục bộ khai báo b�
 
 To summarize: a closure is function that retains the bindings of the free variables that exist when the function is defined, so that they can be used later when the function is invoked and the defining scope is no longer available.
 
-## The nonlocal Declaration
+---
+### The nonlocal Declaration
 
 Chắc hẳn bạn đã để ý rằng cách tính trung bình trong ví dụ trên là không thuận tiện, ta chỉ cần lưu giá trị tổng hiện thời và số lượng giá trị đã truyền vào thôi:
 
@@ -166,18 +186,19 @@ Tuy nhiên, code này sẽ không chạy được. Lý do là bởi ta đã th�
 Để khắc phục điều này, nếu như bạn có ý định gán giá trị cho một biến tự do mà không muốn nó trở thành biến cục bộ, hãy dùng từ khoá **nonlocal**:
 
 ```python
-    def make_averager():
-        count = 0
-        total = 0
+def make_averager():
+    count = 0
+    total = 0
     def averager(new_value):
         nonlocal count, total
         count += 1
         total += new_value
         return total / count
-    return averager
+return averager
 ``` 
 
-## Implementing a Simple Decorator
+---
+### Implementing a Simple Decorator
 
 Dưới đây là một ví dụ về decorator trả về thời gian tính toán của decorated function:
 
@@ -248,17 +269,19 @@ Như vậy quá trình biến đổi `clocked` diễn ra như sau:
 
 Đây chính là design pattern để implement một decorator có tham số.
 
-## Decorator in The Standard Library
+---
+### Decorator in The Standard Library
 
 Python có 3 built-in functions được thiết kế để decorate các methods: `@property`, `@classmethod` và `@staticmethod`. Ý nghĩa và cách sử dụng các decorator này sẽ được đề cập đến sau trong phần lập trình hướng đối tượng với Python.
 
 Bên cạnh đó, Python còn hỗ trợ rất nhiều decorator hữu ích trong các công việc khác nhau, dưới đây là 3 trong số đó:
 
-*   `functools.wraps`: Thiết kế well-behaved decorators, đã sử dụng ở trên
-*   `functools.lru_cache`
-*   `functools.single_dispatch`
+-   `functools.wraps`: Thiết kế well-behaved decorators, đã sử dụng ở trên
+-   `functools.lru_cache`
+-   `functools.single_dispatch`
 
-### Memoization with functools.lru_cache
+---
+#### Memoization with functools.lru_cache
 
 `functools.lr_cache` là một công cụ implement các kĩ thuật tối ưu giúp lưu lại kết quả của các lần gọi kế trước của một hàm, tránh việc tính toán lại các phép tính đã được tính rồi gây tốn kém tài nguyên.
 
@@ -340,7 +363,8 @@ Chú ý rằng, `lru_cache()` là một decorator có tham số, cú pháp đầ
 
 Trong đó `maxsize` là số kết quả được lưu trữ tối đa, khi kích thước cache đầy, các bản ghi ít được sử dụng nhất gần đây sẽ  bị loại bỏ (hence: LRU - Least Recently Used). `typed` được đặt là `True` nếu muốn lưu trữ các kết quả có kiểu khác nhau tách biệt nhau.
 
-### Generic functions with singledispatch
+---
+#### Generic functions with singledispatch
 
 Python không hỗ trợ function overloading (bởi vì nó không định kiểu dữ liệu cho tham số của hàm), đây là một điểm yếu lớn khiến cho việc lập trình tổng quát (generic programming) đối với Python không được thuận tiện như C++ hay Java.
 
@@ -359,9 +383,9 @@ def htmlize(obj):
 *Chú thích:* Hàm `html.escape()` biến một xâu thành một xâu an toàn để hiển thị với HTML (chuyển `'>'` -> `'&gt;'`, `' '` -> `'&nbsp;'`, ...)
 
 Bây giờ, thay đổi yêu cầu một chút, với các kiểu dữ liệu khác nhau ta cần có các cách hiển thị khác nhau:
-*   `str`: thay '\n' thành '`<br>`\n', dùng thẻ `<p>` thay vì `<pre>`
-*   `int`: hiển thị dạng thập phân và thập lục phân của số
-*   `list`: hiển thị dưới dạng HTML list, mỗi item được format theo kiểu của nó.
+-   `str`: thay '\n' thành '`<br>`\n', dùng thẻ `<p>` thay vì `<pre>`
+-   `int`: hiển thị dạng thập phân và thập lục phân của số
+-   `list`: hiển thị dưới dạng HTML list, mỗi item được format theo kiểu của nó.
 
 Đối với Java hay C++, ta có thể dễ dàng thay đổi bằng cách overload hàm `htmlize` với các chữ ký khác nhau. Ta không thể làm vậy trong Python mà cần dùng `functools.singledispatch` như sau:
 
@@ -394,17 +418,17 @@ def _(seq):
 
 Bạn có thể hiểu được các thức hoạt động của `@singledispatch` chỉ bằng việc đọc qua đoạn code này. Dưới đây là một vài chú ý:
 
-*   Tên của các overloading functions từ `htmlize` không quan trọng, hãy dùng ký hiệu `_` để thể hiện điều đó
-*   `number.Integral` là lớp bao của `int`, tương tự `abc.MutableSequence` là lớp bao của `list`. Bạn hoàn toàn có thể dùng `int` và `list` thay vào đó, tuy nhiên cách dùng đầu tiên có khả năng tương thích đa dạng hơn (ví dụ như `int8`, `int32` hay `int64` trong `numpy` là các cách mô tả kiểu `int` với số lượng bit khác nhau, về bản chất chúng khác `int` nhưng đều là `number.Integral`)
-*   Nếu bạn muốn implement một overloading function cho nhiều kiểu dữ liệu khác nhau, chồng các register decorator lên nhau như ở ví dụ cuối
+-   Tên của các overloading functions từ `htmlize` không quan trọng, hãy dùng ký hiệu `_` để thể hiện điều đó
+-   `number.Integral` là lớp bao của `int`, tương tự `abc.MutableSequence` là lớp bao của `list`. Bạn hoàn toàn có thể dùng `int` và `list` thay vào đó, tuy nhiên cách dùng đầu tiên có khả năng tương thích đa dạng hơn (ví dụ như `int8`, `int32` hay `int64` trong `numpy` là các cách mô tả kiểu `int` với số lượng bit khác nhau, về bản chất chúng khác `int` nhưng đều là `number.Integral`)
+-   Nếu bạn muốn implement một overloading function cho nhiều kiểu dữ liệu khác nhau, chồng các register decorator lên nhau như ở ví dụ cuối
 
-## Stacked Decorators
+---
+### Stacked Decorators
 
-You already knew about it.
+TODO
 
-## Parameterized Decorators
-
-You also knew about it, but we'll get into it more specifically.
+---
+### Parameterized Decorators
 
 Thông thường, decorator sẽ nhận vào decorated function là tham số, vậy làm thế nào để khiến nó nhận thêm tham số khác? Câu trả lời là tạo ra một decorator trả về một decorator. Decorator nằm ngoài sẽ nhận vào các tham số, trong khi decorator phía trong nhận vào function. Ví dụ:
 
@@ -434,31 +458,11 @@ The outer decorator took 5 arguments
 Quá trình biến đổi `func` diễn ra như sau:
 
 ```python
-func = outerdeco(*decoargs)(innerdeco(func)) = innerdeco(func) = innerfunc
+decorated_func(*args, **kwargs)
+  => outerdeco(*decoargs)(innerdeco(func))(*args, **kwargs)
+    => innerdeco(func)(*args, **kwargs)
+      => innerfunc(*args, **kwargs)
+        => func(*args, **kwargs)
 ```
 
-Thông thường `*decoargs` là các cờ điều khiển quá trình hoạt động trong `innerfunc`, hoặc cũng có thể định nghĩa ra nhiều `innerdeco` và dùng `*decoargs` để điều khiển chọn ra `innerdeco` nào được chọn để trả về. Cách thứ nhất đơn giản, và nhất quán hơn.
-
-## Summary Contents
-
-We covered a lot of ground in this chapter, but I tried to make the journey as smooth as possible even if the terrain is rugged. After all, we did enter the realm of metaprogramming.
-
-Registration decorators, though simple in essence, have real applications in advanced Python frameworks. We applied the registration idea to an improvement of our Strategy design pattern refactoring from Chapter 6.
-
-Parametrized decorators almost aways involve at least two nested functions, maybe
-more if you want to use `@functools.wraps` to produce a decorator that provides better support for more advanced techniques. One such technique is stacked decorators, which we briefly covered.
-
-We also visited two awesome function decorators provided in the `functools` module of standard library: `@lru_cache()` and `@singledispatch`.
-
-Understanding how decorators actually work required covering the difference between import time and run time, then diving into variable scoping, closures, and the new `nonlocal` declaration. Mastering closures and `nonlocal` is valuable not only to build decorators, but also to code event-oriented programs for GUIs or asynchronous I/O with callbacks.
-
-## Pythonic Programming Tricks
-
-*   Cú pháp `'%s' % obj` có chức năng format `obj` về dạng xâu bằng cách gọi đến phương thức `__repr__` của nó
-*   Dùng từ khóa `nonlocal` giúp biến không bị biến thành cục bộ khi gán dữ liệu cho nó bên trong hàm
-*   `functools.wraps` tạo ra well-behaved decorators
-*   `functools.lru_cache` lưu trữ các phép tính đã thực hiện trước đó, tránh việc tính toán lại một phép tính thừa
-*   `functools.singledispatch` cung cấp cách thức overloading methods và functions trong Python
-*   Module `html` giúp chuyển đổi xâu thường thành xâu html và ngược lại
-*   `locals()` trả về một `dict` các biến cục bộ trong module/class/function
-
+Thông thường `*decoargs` là các cờ điều khiển quá trình hoạt động trong `innerfunc`, hoặc cũng có thể định nghĩa ra nhiều `innerdeco` và dùng `*decoargs` để điều khiển chọn ra `innerdeco` nào được chọn để trả về. Cách thứ nhất đơn giản và nhất quán hơn.

@@ -8,8 +8,8 @@ Nhờ vào khái niệm Data Model, các đối tượng user-defined có thể 
 
 Hai cách chủ yếu được sử dụng để lấy ra thông tin đại diện cho một object bất kỳ dưới dạng một xâu trong Python:
 
-*   **`repr()`**: Trả về những thứ mà developers cần
-*   **`str()`**: Trả về những thứ mà người dùng cần
+-   **`repr()`**: Trả về những thứ mà developers cần
+-   **`str()`**: Trả về những thứ mà người dùng cần
 
 Để sử dụng hai hàm này với một object, nó cần được implement hai phương thức tương ứng là **`__repr__`** và **`__str__`**.
 
@@ -19,11 +19,11 @@ Hai cách khác đó là **`bytes()`** và **`format()`**, ví dụ về cách s
 
 Dưới đây là một ví dụ về Pythonic Vector2d class, vector này có thể được:
 
-*   In ra với lệnh `print`
-*   Unpack thành một tuple chứa hoành độ và tung độ của vector
-*   Tính độ dài với lệnh **`abs()`**
-*   Đánh giá tính đúng sai với lệnh **`bool()`** (Vector là False nếu và chỉ nếu nó có độ dài bằng 0)
-*   So sánh bằng nhau với vector khác bằng cú pháp **`==`**
+-   In ra với lệnh `print`
+-   Unpack thành một tuple chứa hoành độ và tung độ của vector
+-   Tính độ dài với lệnh **`abs()`**
+-   Đánh giá tính đúng sai với lệnh **`bool()`** (Vector là False nếu và chỉ nếu nó có độ dài bằng 0)
+-   So sánh bằng nhau với vector khác bằng cú pháp **`==`**
 
 ```python
 from array import array
@@ -58,16 +58,16 @@ class Vector2d(object):
 
 Một vài chú ý:
 
-*   Implement **`__iter__`** biến object thành iterable đem lại rất nhiều lợi ích:
-    *   Sử dụng trong cú pháp `for...in`
-    *   Có thể unpack iterable vào các biến cũng như vào các tham số (`*self`) của hàm
-    *   Có thể tạo một `list`, `tuple` hay `set` từ một iterable từ constructor `list()`, `tuple()` hay `set()`
+-   Implement **`__iter__`** biến object thành iterable đem lại rất nhiều lợi ích:
+    -   Sử dụng trong cú pháp `for...in`
+    -   Có thể unpack iterable vào các biến cũng như vào các tham số (`*self`) của hàm
+    -   Có thể tạo một `list`, `tuple` hay `set` từ một iterable từ constructor `list()`, `tuple()` hay `set()`
 
-*   Format xâu từ object :
-    *   Bằng phương thức `__repr__`: `'%r' % obj` hoặc `'{!r}'.format(obj)`
-    *   Bằng phương thức `__str__`: `'%s' % obj` hoặc `'{!s}.format(obj)'`
+-   Format xâu từ object :
+    -   Bằng phương thức `__repr__`: `'%r' % obj` hoặc `'{!r}'.format(obj)`
+    -   Bằng phương thức `__str__`: `'%s' % obj` hoặc `'{!s}.format(obj)'`
 
-*   Phép so sánh hai tuple được thực hiện nhanh hơn phép so sánh lần lượt từng phần tử
+-   Phép so sánh hai tuple được thực hiện nhanh hơn phép so sánh lần lượt từng phần tử
 
 ## Class Methods vs Static Methods
 
@@ -101,8 +101,8 @@ Thực tình mà nói, static methods khá là vô dụng :))
 
 Hàm built-in **`format()`** và phương thức **`str.format()`** thực hiện format xâu với từng kiểu tham số khác nhau bằng cách gọi đến hàm **`__format(format_spec)__`** được implement cho từng kiểu. Trong đó, `format_spec` có thể là:
 
-*   Tham số thứ hai trong hàm **`format`**: `format(obj, format_spec)`
-*   Các ký tự nằm sau ký tự '**`:`**' trong mỗi cặp ngoặc nhọn '**`{...}`**' trong xâu **`str`** trong cú pháp **`str.format()`**
+-   Tham số thứ hai trong hàm **`format`**: `format(obj, format_spec)`
+-   Các ký tự nằm sau ký tự '**`:`**' trong mỗi cặp ngoặc nhọn '**`{...}`**' trong xâu **`str`** trong cú pháp **`str.format()`**
 
 Ví dụ:
 
@@ -126,22 +126,22 @@ Cụm `{...}` được dùng trong cú pháp `str.format()` được gọi là p
 
 Trong đó:
 
-*   `field_name` là tên định danh cho placeholder, tên này sau đó được truyền vào hàm format theo cú pháp `.format(field_name=object)
-*   `conversion` là phương thức được sử dụng lên object khi format nó sang kiểu xâu, có thể nhận một trong ba giá trị:
-    *   `r` -> `repr()`
-    *   `s` ->  `str()`
-    *   `a`->   `ascii()`
-*   `format_spec` là format specifer cho kiểu được sử dụng, nó lại được cấu thành bởi cú pháp:
+-   `field_name` là tên định danh cho placeholder, tên này sau đó được truyền vào hàm format theo cú pháp `.format(field_name=object)
+-   `conversion` là phương thức được sử dụng lên object khi format nó sang kiểu xâu, có thể nhận một trong ba giá trị:
+    -   `r` -> `repr()`
+    -   `s` ->  `str()`
+    -   `a`->   `ascii()`
+-   `format_spec` là format specifer cho kiểu được sử dụng, nó lại được cấu thành bởi cú pháp:
         ```python
         [[fill]align][sign][#][0][width][,][.precision][type]
         ```        
-    *   `fill`: Một ký tự bất kỳ điền vào các vị trí trống khi format xâu, mặc định là dấu cách
-    *   `align`: Cách căn lề, bao gồm "<" (trái), ">" (phải), "^" (giữa), "=" (đều hai bên)
-    *   `sign`: Cách thức thêm dấu cho dữ liệu kiểu số, bao gồm "+" (thêm dấu cho cả số âm và dương), "-" (chỉ thêm dấu cho số âm), " " (thêm dấu " " vào trước số dương và "-" vào trước số âm)
-    *   `#`: chỉ định ra định dạng conversion khác cho xâu
-    *   `,`: Thêm dấu ',' để ngăn cách các cụm ba số trong hệ số thập phân
-    *   `with`: Kích thước nhỏ nhất của khung
-    *   `precision`: Độ chính xác của số thập phân
+    -   `fill`: Một ký tự bất kỳ điền vào các vị trí trống khi format xâu, mặc định là dấu cách
+    -   `align`: Cách căn lề, bao gồm "<" (trái), ">" (phải), "^" (giữa), "=" (đều hai bên)
+    -   `sign`: Cách thức thêm dấu cho dữ liệu kiểu số, bao gồm "+" (thêm dấu cho cả số âm và dương), "-" (chỉ thêm dấu cho số âm), " " (thêm dấu " " vào trước số dương và "-" vào trước số âm)
+    -   `#`: chỉ định ra định dạng conversion khác cho xâu
+    -   `,`: Thêm dấu ',' để ngăn cách các cụm ba số trong hệ số thập phân
+    -   `with`: Kích thước nhỏ nhất của khung
+    -   `precision`: Độ chính xác của số thập phân
 
 Một vài ví dụ:
 
@@ -206,9 +206,9 @@ Kết quả:
 
 Điều kiện để một đối tượng là `hashable` là:
 
-*   Có phương thức `__eq__`
-*   Có phương thức `__hash__`
-*   Là immutable
+-   Có phương thức `__eq__`
+-   Có phương thức `__hash__`
+-   Là immutable
 
 Biến thể hiện của Vector2d thành immutable:
 
@@ -231,14 +231,14 @@ class Vector2d(object):
 
 *Chú ý:*
 
-*   Sử dụng đúng hai dấu gạch dưới phía trước (và tối đa một dấu gạch dưới phía sau) để biến attribute thành private
-*   Decorator `@property` biến các attributes thành chỉ đọc và tạo ra getter tương ứng với nó, cách sử dụng nó sẽ được đề cập cụ thể hơn ở chương 19
+-   Sử dụng đúng hai dấu gạch dưới phía trước (và tối đa một dấu gạch dưới phía sau) để biến attribute thành private
+-   Decorator `@property` biến các attributes thành chỉ đọc và tạo ra getter tương ứng với nó, cách sử dụng nó sẽ được đề cập cụ thể hơn ở chương 19
 
 Bây giờ ta implement phương thức `__hash__` với một vài chú ý:
 
-*   Nên trả về kiểu **`int`**
-*   Sử dụng các thuộc tính trong phương thức `__eq__` vì các đối tượng "bằng nhau" nên có cùng giá trị băm
-*   Nên sử dụng toán tử xor (**`^`**) giữa các giá trị băm của các thành phần
+-   Nên trả về kiểu **`int`**
+-   Sử dụng các thuộc tính trong phương thức `__eq__` vì các đối tượng "bằng nhau" nên có cùng giá trị băm
+-   Nên sử dụng toán tử xor (**`^`**) giữa các giá trị băm của các thành phần
 
 Vậy ta có thể implement phương thức này như sau:
 
@@ -271,8 +271,8 @@ Giải pháp cho vấn đề được đề cập đến ở trên đó là sử
 
 **Nhược điểm:**
 
-*   **`__slots__`** không được thừa kế cho lớp con
-*   Phải khai báo tất cả các thuộc tính của instance cho **`__slots__`**
+-   **`__slots__`** không được thừa kế cho lớp con
+-   Phải khai báo tất cả các thuộc tính của instance cho **`__slots__`**
 
 ## Overriding Class Attributes
 

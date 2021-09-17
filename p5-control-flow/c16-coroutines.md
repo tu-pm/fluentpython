@@ -2,9 +2,9 @@
 
 Coroutines về cú pháp rất giống generator: Chỉ đơn thuần là một hàm có từ khóa `yield`. Những đặc trưng của từ khóa `yield` trong coroutines:
 
-*   Thường đứng bên phải một expression: `datum = yield`
-*   Có thể không sinh ra giá trị nào: `yield` === `yield None`
-*   Nhận giá trị truyền vào từ caller (?)
+-   Thường đứng bên phải một expression: `datum = yield`
+-   Có thể không sinh ra giá trị nào: `yield` === `yield None`
+-   Nhận giá trị truyền vào từ caller (?)
 
 Ngay cả khi `yield` không trả về dữ liệu nào, nó cũng có thể được dùng như cờ điều khiển luồng thiết bị trong việc implement cooperative multi-tasking: mỗi coroutine yields (trả về) quyền kiểm soát cho scheduler trung tâm để các coroutines khác có thể được kích hoạt.
 
@@ -12,10 +12,10 @@ Ngay cả khi `yield` không trả về dữ liệu nào, nó cũng có thể đ
 
 PEP 342 định nghĩa ra cách implement coroutine từ generator functions với các phương thức mới được bổ sung vào generator API giúp nó có thể làm việc với coroutines, trong đó có:
 
-*   `.send(value)`: Truyền `value` vào trong generator object
-*   `.close()`: raise `GeneratorExit`
-*   `.throw(exc)`: raise exeption bên trong generator
-*   Cả ba phương thức này đều trả về giá trị tiếp theo được yield hoặc raise `StopIteration`
+-   `.send(value)`: Truyền `value` vào trong generator object
+-   `.close()`: raise `GeneratorExit`
+-   `.throw(exc)`: raise exeption bên trong generator
+-   Cả ba phương thức này đều trả về giá trị tiếp theo được yield hoặc raise `StopIteration`
 
 ### A Simple Coroutine Generator
 
@@ -51,11 +51,11 @@ None
 3
 ```
 
-*   #1: Khởi tạo một coroutine x
-*   #2: Không được phép `send` giá trị khác `None` vào generator chỉ vừa mới được tạo
-*   #3: Phải gọi `next` để lấy ra giá trị đầu tiên trước, đồng thời lệnh `yield` ngắt luồng xử lý ngay trước khi phép gán được thực hiện -> không lấy về được giá trị x tại lần `next` đầu tiên
-*   #4: Khi gọi `cnt.send(value)`, value ghi đè lên giá trị được truyền vào generator trước đó (`None`), x được gán bằng value và được in ra, sau đó chương trình chạy đến lần `yield` tiếp theo. Tương tự lần trước, luồng xử lý bị ngắt trước khi x lấy được tham số truyền vào
-*   #5: `next(cnt)` tương đương với `cnt.send(None)`
+-   #1: Khởi tạo một coroutine x
+-   #2: Không được phép `send` giá trị khác `None` vào generator chỉ vừa mới được tạo
+-   #3: Phải gọi `next` để lấy ra giá trị đầu tiên trước, đồng thời lệnh `yield` ngắt luồng xử lý ngay trước khi phép gán được thực hiện -> không lấy về được giá trị x tại lần `next` đầu tiên
+-   #4: Khi gọi `cnt.send(value)`, value ghi đè lên giá trị được truyền vào generator trước đó (`None`), x được gán bằng value và được in ra, sau đó chương trình chạy đến lần `yield` tiếp theo. Tương tự lần trước, luồng xử lý bị ngắt trước khi x lấy được tham số truyền vào
+-   #5: `next(cnt)` tương đương với `cnt.send(None)`
 
 ### Coroutine to compute running average
 
@@ -130,9 +130,9 @@ Cách hay được dùng nhất để ngừng hoạt động của coroutine đ�
 ## Returning a value from a coroutine
 
 Conroutine không chỉ có thể `yield` giá trị, nó còn có thể trả về giá trị từ lệnh `return`. Tuy nhiên việc dùng cùng lúc `yield` và `return` có thể gây nên những nhầm lẫn không đáng có. Bởi vậy, usecase thường gặp nhất khi có cả `yield` và `return` trong một coroutine là:
-    *   `yield` chỉ được dùng để đọc vào giá trị mà không sinh ra giá trị nào
-    *   Vòng lặp `yield` bị chấm dứt tại một điểm nào đó
-    *   Hàm trả về giá trị cuối cùng với từ khóa `return`
+    -   `yield` chỉ được dùng để đọc vào giá trị mà không sinh ra giá trị nào
+    -   Vòng lặp `yield` bị chấm dứt tại một điểm nào đó
+    -   Hàm trả về giá trị cuối cùng với từ khóa `return`
 
 Ví dụ: Thay đổi `averager` để nó chỉ trả về kết quả trung bình cộng cuối cùng khi nó nhận vào giá trị `None`:
 
@@ -247,10 +247,10 @@ main(data)
 
 Cách thức hoạt động của module trên khá đơn giản:
 
-*   Hàm main cần tính trung bình cộng các list item nằm trong `data` dict. Nó tạo ra `results` dict để lưu kết quả và yêu cầu `grouper` generator tính toán và đóng gói dữ liệu vào dict này
-*   Với mỗi key nằm trong `data`, `grouper` tạo ra một phần tử mới trong `results` chứa kết quả được yield về từ subgenerator `averager`
-*   Hàm `main` liên tục `send` giá trị vào thể hiện của `grouper` nhưng thực chất là gửi đến `averager`. Sau khi yield hết giá trị trong một list item, nó gửi `None` để break vòng lặp trong `averager` và trả lại quyền xử lý cho `grouper`
-*   `grouper` nhận giá trị trả về từ `averager` và tạo ra phần tử mới trong results dict, các thao tác lại được lặp lại
+-   Hàm main cần tính trung bình cộng các list item nằm trong `data` dict. Nó tạo ra `results` dict để lưu kết quả và yêu cầu `grouper` generator tính toán và đóng gói dữ liệu vào dict này
+-   Với mỗi key nằm trong `data`, `grouper` tạo ra một phần tử mới trong `results` chứa kết quả được yield về từ subgenerator `averager`
+-   Hàm `main` liên tục `send` giá trị vào thể hiện của `grouper` nhưng thực chất là gửi đến `averager`. Sau khi yield hết giá trị trong một list item, nó gửi `None` để break vòng lặp trong `averager` và trả lại quyền xử lý cho `grouper`
+-   `grouper` nhận giá trị trả về từ `averager` và tạo ra phần tử mới trong results dict, các thao tác lại được lặp lại
 
 Ta có thể làm chuỗi ủy nhiệm trở nên dài hơn, mỗi generator lại ủy nhiệm cho generator con của nó, kết thúc bằng một generator chỉ có mệnh đề `yield` hoặc là một `iterator`.
 
@@ -279,13 +279,13 @@ Event = collections.namedtuple('Event', 'time proc action')
 ```
 Trong đó:
 
-*   `time`: Thời điểm mà sự kiện diễn ra, được sinh bằng bộ sinh ngẫu nhiên
-*   `proc`: Định danh của taxi
-*   `action`={'leave garage', 'pick up passanger', 'drop off passanger', 'going home'}: Các hành động của taxi
+-   `time`: Thời điểm mà sự kiện diễn ra, được sinh bằng bộ sinh ngẫu nhiên
+-   `proc`: Định danh của taxi
+-   `action`={'leave garage', 'pick up passanger', 'drop off passanger', 'going home'}: Các hành động của taxi
 
 *Bước 2: Mô phỏng một taxi*
 
-*   Thứ tự hành động của taxi là: rời gara, lặp (đón khách, trả khách) đến khi số chuyến == m, trở về nhà. Ta sẽ lập trình một coroutine nhận vào thời điểm `time` và yield `Event` tương ứng:
+-   Thứ tự hành động của taxi là: rời gara, lặp (đón khách, trả khách) đến khi số chuyến == m, trở về nhà. Ta sẽ lập trình một coroutine nhận vào thời điểm `time` và yield `Event` tương ứng:
 
     ```python
     def taxi_process(id, trips, start_time=0):
@@ -298,18 +298,18 @@ Trong đó:
 	    yield Event(time, id, 'going home')    
     ```
 
-*   Ta có thể tạo ra một taxi như sau:
+-   Ta có thể tạo ra một taxi như sau:
 
     ```python
     >>> taxi = taxi_process(id=13, trips=2, start_time=0)
     ```
-*   Bắt đầu lịch trình cho taxi này:
+-   Bắt đầu lịch trình cho taxi này:
 
     ```python
     >>> next(taxi)
     Event(time=0, proc=13, action='leave garage')
     ```
-*   Mỗi lần `send` vào `taxi` coroutine một thời điểm, nó sẽ sinh ra sự kiện tương ứng ở thời điểm đó
+-   Mỗi lần `send` vào `taxi` coroutine một thời điểm, nó sẽ sinh ra sự kiện tương ứng ở thời điểm đó
 
     ```python
     Event(time=0, proc=13, action='leave garage')
@@ -330,11 +330,11 @@ Trong đó:
     ```
 *Bước 3: Tạo ra một lớp quản lý các `taxi_processes`*, các sự kiện xảy ra trước thì được hiển thị trước -> sử dụng hàng đợi ưu tiên chứa các events
 
-*   Tạo lớp `Simulator` có hai thuộc tính là:
-    *   `events`: Một `PriorityQueue` chứa các item là các đối tượng `Event` với trường khóa mặc định là `item[0]`, tức là trường `time` của `Event`
-    *   `procs`: Một `dict` map giữa process id và process instance tương ứng
+-   Tạo lớp `Simulator` có hai thuộc tính là:
+    -   `events`: Một `PriorityQueue` chứa các item là các đối tượng `Event` với trường khóa mặc định là `item[0]`, tức là trường `time` của `Event`
+    -   `procs`: Một `dict` map giữa process id và process instance tương ứng
 
-*   Định nghĩa phương thức `run`: Lấy ra event có `time` nhỏ nhất từ hàng đợi `events` -> in thông tin của event -> feed ngẫu nhiên thời điểm xảy ra sự kiện tiếp theo cho process có `proc.id == event.proc` -> nhận được một event mới (hoặc kết thúc process) -> nạp  event vào hàng đợi (hoặc hủy process):
+-   Định nghĩa phương thức `run`: Lấy ra event có `time` nhỏ nhất từ hàng đợi `events` -> in thông tin của event -> feed ngẫu nhiên thời điểm xảy ra sự kiện tiếp theo cho process có `proc.id == event.proc` -> nhận được một event mới (hoặc kết thúc process) -> nạp  event vào hàng đợi (hoặc hủy process):
 
     ```python
     from random import randint
@@ -428,39 +428,39 @@ taxi:  2 		 Event(time=51, proc=2, action='going home')
 
 Dưới đây là note về coroutine của tôi về bài giảng [Curious Course on Coroutines and Concurrency](https://www.youtube.com/watch?v=Z_OAlIhXziw) nói về các ứng dụng của coroutine:
 
-*   Part I: Introduction to Generators and Coroutines
-    *   Generators tạo ra giá trị, coroutines nhận vào giá trị
-    *   Không trộn lẫn hai khái niệm này để tránh gây khó hiểu
-*   Part II: Coroutines, Pipelines, and Dataflow
-    *   Tạo ra pipeline bằng coroutines, bao gồm một điểm đầu sinh ra giá trị feed vào pipeline, các coroutines nhận vào, xử lý và truyền đi giá trị, một điểm cuối hiển thị giá trị cuối cùng và xử lý đóng pipeline (với phương thức `close`)
-    *   Có thể rẽ nhánh, gộp nhánh các pipelines để tạo thành một dataflow graph
-    *   Về mặt khái niệm, coroutines giống với handler desgin pattern trong lập trình hướng đối tượng: Đều nhận dữ liệu từ một nguồn nào đó và gửi đi tới các đích khác nhau
-*   Part III: Coroutines and Event Dispatching
-    *   Có thể dùng coroutines cho các hệ thống event driven
-    *   Ý tưởng chính:
+-   Part I: Introduction to Generators and Coroutines
+    -   Generators tạo ra giá trị, coroutines nhận vào giá trị
+    -   Không trộn lẫn hai khái niệm này để tránh gây khó hiểu
+-   Part II: Coroutines, Pipelines, and Dataflow
+    -   Tạo ra pipeline bằng coroutines, bao gồm một điểm đầu sinh ra giá trị feed vào pipeline, các coroutines nhận vào, xử lý và truyền đi giá trị, một điểm cuối hiển thị giá trị cuối cùng và xử lý đóng pipeline (với phương thức `close`)
+    -   Có thể rẽ nhánh, gộp nhánh các pipelines để tạo thành một dataflow graph
+    -   Về mặt khái niệm, coroutines giống với handler desgin pattern trong lập trình hướng đối tượng: Đều nhận dữ liệu từ một nguồn nào đó và gửi đi tới các đích khác nhau
+-   Part III: Coroutines and Event Dispatching
+    -   Có thể dùng coroutines cho các hệ thống event driven
+    -   Ý tưởng chính:
         1.  Tiền xử lý input thành format (event, data) và gửi output cho coroutine xử lý dữ liệu
         1.  Coroutine đọc dữ liệu, xử lý dữ liệu dựa vào event và gửi dữ liệu đến (các) điểm cuối. Bản chất coroutine này là một state machine - quay trở lại trạng thái ban đầu khi đã xử lý + gửi dữ liệu xong
         1.  Các điểm cuối hiển thị dữ liệu + kết thúc pipeline
-*   Part IV: From Data Processing to Concurrent Programming
-    *   Có thể gửi dữ liệu đến các coroutines nằm trên các threads/processes/hosts khác
-    *   Một vài chú ý:
-        *   Gửi dữ liệu đến một coroutine đang chạy gây ra ngoại lệ và ngừng chương trình
-        *   Không thể gửi ngược dữ liệu đến coroutine nguồn, cũng không thể gửi lại dữ liệu từ coroutine cho chính nó
-*   Part V: Coroutines as Tasks
-    *   Trong lập trình concurrent, task là một vấn đề con có các tính chất:
-        *   Kiểm soát luồng độc lập
-        *   Sở hữu trạng thái nội bộ
-        *   Có thể được lập lịch (tạm dừng,  tiếp tục)
-        *   Có thể giao tiếp với các tasks khác
-    *   Do vậy, coroutines cũng là tasks
-    *   Tuy nhiên, coroutines không nhất thiết là đa luồng hay đa tiến trình => Có thể lập trình mustitasking chỉ với một luồng duy nhất sử dụng coroutine
-*   Part VI: A Crash Course of OS
-    *   Công việc phân công và quản lý multitask là của hệ điều hành
-    *   Hệ điều hành luân chuyển giữa các tasks nhờ cơ chế trap (sinh bởi tín hiệu phần cứng hoặc phần mềm), yêu cầu tạm dừng tiến trình hiện tại và chuyển sang thực hiện tiến trình khác
-    *   Các tasks chờ đợi để được thực thi trong các hàng đợi
-    *   Bản chất câu lệnh `yield` cũng là một dạng trap: Quá trình thực thi bên trong generator bị dừng lại khi tới lệnh yield, quyền kiểm soát chuyển về cho phía gọi generator (phương thức `next` hay `send`)
-    *   Hãy thử xây dựng một hệ điều hành đa nhiệm sử dụng coroutine!
-*   Part VII: Let's Build an Operating System
-    *   Just kidding :v Look at his code if you're interested
-*   Part VIII: The Problem with the Stack
-    *   Mệnh đề `yield` chỉ có thể tạm dừng hàm chứa nó, không thể dùng để ngừng tác vụ ở mức sâu hơn
+-   Part IV: From Data Processing to Concurrent Programming
+    -   Có thể gửi dữ liệu đến các coroutines nằm trên các threads/processes/hosts khác
+    -   Một vài chú ý:
+        -   Gửi dữ liệu đến một coroutine đang chạy gây ra ngoại lệ và ngừng chương trình
+        -   Không thể gửi ngược dữ liệu đến coroutine nguồn, cũng không thể gửi lại dữ liệu từ coroutine cho chính nó
+-   Part V: Coroutines as Tasks
+    -   Trong lập trình concurrent, task là một vấn đề con có các tính chất:
+        -   Kiểm soát luồng độc lập
+        -   Sở hữu trạng thái nội bộ
+        -   Có thể được lập lịch (tạm dừng,  tiếp tục)
+        -   Có thể giao tiếp với các tasks khác
+    -   Do vậy, coroutines cũng là tasks
+    -   Tuy nhiên, coroutines không nhất thiết là đa luồng hay đa tiến trình => Có thể lập trình mustitasking chỉ với một luồng duy nhất sử dụng coroutine
+-   Part VI: A Crash Course of OS
+    -   Công việc phân công và quản lý multitask là của hệ điều hành
+    -   Hệ điều hành luân chuyển giữa các tasks nhờ cơ chế trap (sinh bởi tín hiệu phần cứng hoặc phần mềm), yêu cầu tạm dừng tiến trình hiện tại và chuyển sang thực hiện tiến trình khác
+    -   Các tasks chờ đợi để được thực thi trong các hàng đợi
+    -   Bản chất câu lệnh `yield` cũng là một dạng trap: Quá trình thực thi bên trong generator bị dừng lại khi tới lệnh yield, quyền kiểm soát chuyển về cho phía gọi generator (phương thức `next` hay `send`)
+    -   Hãy thử xây dựng một hệ điều hành đa nhiệm sử dụng coroutine!
+-   Part VII: Let's Build an Operating System
+    -   Just kidding :v Look at his code if you're interested
+-   Part VIII: The Problem with the Stack
+    -   Mệnh đề `yield` chỉ có thể tạm dừng hàm chứa nó, không thể dùng để ngừng tác vụ ở mức sâu hơn

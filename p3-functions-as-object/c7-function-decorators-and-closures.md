@@ -25,7 +25,7 @@ Qua đó, ta có kiến thức để giải quyết những bài toán như:
   - [The nonlocal Declaration](#the-nonlocal-declaration)
   - [Implementing a Simple Decorator](#implementing-a-simple-decorator)
   - [Decorator in The Standard Library](#decorator-in-the-standard-library)
-    - [Memoization with functools.lru_cache](#memoization-with-functoolslru_cache)
+    - [Memoization with lru_cache](#memoization-with-lru_cache)
     - [Generic functions with singledispatch](#generic-functions-with-singledispatch)
   - [Stacked Decorators](#stacked-decorators)
   - [Parameterized Decorators](#parameterized-decorators)
@@ -53,7 +53,6 @@ target = decorate(target)
 ```
 
 Hai điểm cần lưu ý đối với decorators:
-
 -   Decorated function sẽ bị thay thế bởi hàm mà decorator trả về
 -   Thao tác thay thế decorated function được thực hiện ngay khi module được load, chứ không phải đến khi decorated function được gọi
 
@@ -108,19 +107,42 @@ Như đã nói, decorator hầu như đều thay thế decorated function bằng
 
 **Rule #1:** Khi một biến được gán giá trị trong phạm vi của một hàm, nó mặc định là biến cục bộ.
 
-Luật này gây ra một hiện tượng khá "kì lạ"
+Luật này gây ra một hiện tượng khá "kì lạ", đó là đoạn code này sẽ chạy như bình thường:
+```python
+>>> b = 3
+>>> def foo():
+...     print(b)
+... 
+>>> foo()
+3
+```
+
+Nhưng đoạn code này sẽ gây ra lỗi biến được sử dụng trước khi khai báo:
+```python
+>>> b = 3
+>>> def foo():
+...     print(b)
+...     b = 4
+... 
+>>> foo()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "<stdin>", line 2, in foo
+UnboundLocalError: local variable 'b' referenced before assignment
+```
+
+Có thể thấy, chỉ cần biến được gán giá trị tại bất kỳ vị trí nào trong hàm thì nó đều được coi là biến cục bộ. Do ta gọi `print(b)` trước khi khởi tạo `b` bên trong hàm nên gây ra lỗi. Hành vi này tuy lạ, nhưng an toàn hơn các ngôn ngữ không yêu cầu khai báo biến khác như Javascript, vì nó khiến ta không thể vô ý thay đổi giá trị của biến toàn cục bên trong hàm.
 
 **Rule #2:** Sử dụng từ khóa `global` bên trong hàm để chỉ thị một biến nào đó là biến toàn cục.
 
 ---
 ### Closures
 
-Closure là một hàm được định nghĩa bên trong một hàm khác, với mục đích chủ yếu là khiến nó có thể truy cập được tới những biến không toàn cục nằm bên ngoài nó (tức là nằm trong lớp chứa nó).
+Closure là một hàm được định nghĩa bên trong một hàm khác, với mục đích chủ yếu là khiến nó có thể truy cập được tới những biến không toàn cục nằm bên ngoài nó (tức là nằm trong hàm chứa nó).
 
 Xét một ví dụ: Hãy định nghĩa một callable `avg` sao cho mỗi lần gọi `avg(i)` với i là một số, nó sẽ trả về trung bình cộng của tất cả tham số đã truyền vào nó từ trước đến giờ.
 
 -   Cách 1: `avg` một object có lưu một attribute là một sequence và được implement phương thức `__call__` thực hiện yêu cầu đề bài:
-
     ```python
     def Averager(object):
         def __init__(self):
@@ -131,7 +153,6 @@ Xét một ví dụ: Hãy định nghĩa một callable `avg` sao cho mỗi lầ
             return sum(series) / len(series)
     ```
 -   Cách 2: Sử dụng function
-
     ```python
     def make_averager():
         series = []
@@ -161,7 +182,7 @@ Câu trả lời là Python đã lưu lại các biến cục bộ khai báo b�
 ('series',)
 ```
 
-To summarize: a closure is function that retains the bindings of the free variables that exist when the function is defined, so that they can be used later when the function is invoked and the defining scope is no longer available.
+Nói tóm lại, closure là một hàm mà nó duy trì tham chiếu tới các biến tự do tồn tại lúc hàm được định nghĩa, giúp nó có thể sử dụng được các biến này khi được gọi tới, ngay cả khi phạm vi định nghĩa của những biến này đã không còn.
 
 ---
 ### The nonlocal Declaration
@@ -222,22 +243,22 @@ import time
 import functools
 
 def clock(func):
-	@functools.wraps(func)
-	def clocked(*args, **kwargs):
-		t0 = time.time()
-		result = func(*args, **kwargs)
-		elapsed = time.time() - t0
-		name = func.__name__
-		arg_lst = []
-		if args:
-			arg_lst.append(', '.join(repr(arg) for arg in args))
-		if kwargs:
-			pairs = ['%s=%r' % (k, w) for k, w in sorted(kwargs.items())]
-			arg_lst.append(', '.join(pairs))
-		arg_str = ', '.join(arg_lst)
-		print('[%0.8fs] %s(%s) -> %r ' % (elapsed, name, arg_str, result))
-		return result
-	return clocked
+    @functools.wraps(func)
+    def clocked(*args, **kwargs):
+        t0 = time.time()
+        result = func(*args, **kwargs)
+        elapsed = time.time() - t0
+        name = func.__name__
+        arg_lst = []
+        if args:
+            arg_lst.append(', '.join(repr(arg) for arg in args))
+        if kwargs:
+            pairs = ['%s=%r' % (k, w) for k, w in sorted(kwargs.items())]
+            arg_lst.append(', '.join(pairs))
+        arg_str = ', '.join(arg_lst)
+        print('[%0.8fs] %s(%s) -> %r ' % (elapsed, name, arg_str, result))
+        return result
+    return clocked
 
 @clock
 def add(x, y):
@@ -263,9 +284,11 @@ Tại sao lại truyền `func` vào cú pháp `@functools.wraps(func)`? Câu tr
 
 Như vậy quá trình biến đổi `clocked` diễn ra như sau:
 
-    ```python
-    clocked = functools.wraps(func)(clocked) = functools.partial(functools.update_wrapper, func)(clocked) = functools.updatewrapper(func, clocked)
-    ```
+```
+clocked = functools.wraps(func)(clocked) 
+        = functools.partial(functools.update_wrapper, func)(clocked)
+        = functools.updatewrapper(func, clocked)
+```
 
 Đây chính là design pattern để implement một decorator có tham số.
 
@@ -281,7 +304,7 @@ Bên cạnh đó, Python còn hỗ trợ rất nhiều decorator hữu ích tron
 -   `functools.single_dispatch`
 
 ---
-#### Memoization with functools.lru_cache
+#### Memoization with lru_cache
 
 `functools.lr_cache` là một công cụ implement các kĩ thuật tối ưu giúp lưu lại kết quả của các lần gọi kế trước của một hàm, tránh việc tính toán lại các phép tính đã được tính rồi gây tốn kém tài nguyên.
 
@@ -322,7 +345,7 @@ Hiện tượng bùng nổ tổ hợp sẽ khiến đoạn code này sẽ không
 @functools.lru_cache()
 @clock
 def optimized_fibonacci(n):
-	return n if 2 > n else optimized_fibonacci(n-1) + optimized_fibonacci(n-2)
+    return n if 2 > n else optimized_fibonacci(n-1) + optimized_fibonacci(n-2)
 ```
 
 Kết quả như sau:
@@ -425,26 +448,37 @@ Bạn có thể hiểu được các thức hoạt động của `@singledispatc
 ---
 ### Stacked Decorators
 
-TODO
+Các decorator có thể được đặt chồng lên nhau khi định nghĩa một hàm, việc chồng (stack) decorators có tác dụng như nối (chain) các decorator functions với nhau. Ví dụ, định nghĩa này:
+```python
+@d1
+@d2
+def f():
+    return
+```
+
+tương đương với:
+```python
+f = d1(d2(f))
+```
 
 ---
 ### Parameterized Decorators
 
-Thông thường, decorator sẽ nhận vào decorated function là tham số, vậy làm thế nào để khiến nó nhận thêm tham số khác? Câu trả lời là tạo ra một decorator trả về một decorator. Decorator nằm ngoài sẽ nhận vào các tham số, trong khi decorator phía trong nhận vào function. Ví dụ:
+Thông thường, decorator sẽ nhận vào decorated function là tham số, vậy làm thế nào để khiến nó nhận thêm tham số khác? Để làm được điều đó, ta cần tạo ra một decorator trả về một decorator khác. Decorator ngoài sẽ nhận vào các tham số, trong khi decorator phía trong nhận vào function. Ví dụ:
 
 ```python
 def outerdeco(*decoargs):
-	def innerdeco(func):
-		def innerfunc(*args, **kwargs):
-			num_args = len(decoargs)
-			print('The outer decorator took %s arguments' % num_args)
-			return func(*args, **kwargs)
-		return innerfunc
-	return innerdeco
+    def innerdeco(func):
+        def innerfunc(*args, **kwargs):
+            num_args = len(decoargs)
+            print('The outer decorator took %s arguments' % num_args)
+            return func(*args, **kwargs)
+        return innerfunc
+    return innerdeco
 
 @outerdeco(1, 2, 3, 4, 5)
 def add(x, y):
-	return x + y
+    return x + y
 ```
 
 Dưới đây là kết quả:

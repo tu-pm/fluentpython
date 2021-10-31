@@ -1,13 +1,10 @@
-op# Iterables, Iterators and Generators
+## Iterables, Iterators and Generators
 
-## Overview
+Iteration là một ý tưởng cơ bản trong xử lý dữ liệu: Khi dataset trở nên quá lớn để nạp hết vào bộ nhớ, ta phải đọc từng item một và chỉ đọc khi được yêu cầu. Đây cũng chính là ý tưởng của Iterator design pattern, cũng là chủ đề chính của chương này.
 
-Iteration là khái niệm cơ bản trong xử lý dữ liệu. Khi mà dataset trở nên quá lớn để truyền vào bộ nhớ, ta cần phải đọc từng item một từ dataset và chỉ đọc khi được yêu cầu.
-
-Key word `yeild` là từ khóa giúp khởi tạo ra generators, hay chính là các iterators. Theo định nghĩa, tất cả các generators đều là iterator, điểm khác biệt là iterators có chức năng *lấy* items từ một tập hợp có trước, trong khi generator *tạo ra* các items "từ không khí" (out of thin air). Tuy nhiên, trong hầu hết các trường hợp, cộng đồng Python đều coi như generators và iterators là đồng nghĩa.
+Key word `yield` là từ khóa giúp khởi tạo ra generators, hay chính là các iterators. Theo định nghĩa, tất cả các generators đều là iterator, điểm khác biệt là iterators có chức năng *lấy* items từ một tập hợp có trước, trong khi generator *tạo ra* các items "từ không khí" (out of thin air). Tuy nhiên, trong hầu hết các trường hợp, cộng đồng Python đều coi như generators và iterators là đồng nghĩa.
 
 Tất cả collection trong Python đều là iterable, và các iterators được dùng để hỗ trợ cho các thao tác:
-
 -   Lặp với `for`
 -   Khởi tạo và mở rộng các collections
 -   Duyệt text files theo dòng
@@ -15,13 +12,47 @@ Tất cả collection trong Python đều là iterable, và các iterators đư�
 -   `tuple` unpacking
 -   unpack tham số truyền vào hàm với toán tử `*`
 
-## Sentence Class Example
+Nội dung chương này bao gồm các chủ đề sau:
+-   Cách mà `iter()` xử lý các iterable objects
+-   Cách implement Iterator pattern cổ điển trong Python
+-   Cách hoạt động của generator function
+-   Cách thay thế Iterator cổ điển bằng generator function hoặc generator expression
+-   Sử dụng cách generator functions có sẵn trong thư viện chuẩn
+-   Sử dụng cú pháp `yield from` để gộp các generator
+-   Phân biệt generators và coroutines
 
-Ta sẽ implement một class `Sentence` là một sequence của các `words`.
+---
+### Table of Contents
 
-### Using Sequence Protocol
+- [Iterables, Iterators and Generators](#iterables-iterators-and-generators)
+  - [Table of Contents](#table-of-contents)
+  - [A Sequence of Words](#a-sequence-of-words)
+    - [Why Sequences Are Iterable: The iter Function](#why-sequences-are-iterable-the-iter-function)
+  - [Iterables vs Iterators](#iterables-vs-iterators)
+  - [A Classic Iterator](#a-classic-iterator)
+    - [Making Sentence an Iterator: Bad Idea](#making-sentence-an-iterator-bad-idea)
+  - [A Generator Function](#a-generator-function)
+    - [How Generator Functions Work](#how-generator-functions-work)
+  - [A Lazy Implementation](#a-lazy-implementation)
+  - [A Generator Expression](#a-generator-expression)
+  - [Generator Expressions: When to Use Them](#generator-expressions-when-to-use-them)
+  - [Arithmetic Progression Generator Example](#arithmetic-progression-generator-example)
+    - [Arithmetic Progression with itertools](#arithmetic-progression-with-itertools)
+  - [Generator Functions in The Standard Library](#generator-functions-in-the-standard-library)
+  - [The yield from Syntax](#the-yield-from-syntax)
+  - [Iterable Reducing Functions](#iterable-reducing-functions)
+  - [A Closer Look at The iter Function](#a-closer-look-at-the-iter-function)
+  - [Generators as Coroutines](#generators-as-coroutines)
+  - [Summary](#summary)
+  - [Soapbox](#soapbox)
+    - [Generator Function Syntax: More Sugar Would Be Nice](#generator-function-syntax-more-sugar-would-be-nice)
+    - [Semantics of Generator vs Iterator](#semantics-of-generator-vs-iterator)
+    - [The Minimalistic Iterator Interface in Python](#the-minimalistic-iterator-interface-in-python)
 
-Dưới đây là đoạn code Python định nghĩa lớp `Sentence` sử dụng sequence protocol:
+---
+### A Sequence of Words
+
+Trước tiên, ta sẽ implement một class `Sentence` là một sequence của các `words` sử dụng sequence protocol:
 
 ```python
 import re
@@ -32,27 +63,25 @@ RE_WORD = re.compile('\w+')
 
 class Sentence(object):
 
-	def __init__(self, text):
-		self.text = text
-		self.words = RE_WORD.findall(text)
+    def __init__(self, text):
+        self.text = text
+        self.words = RE_WORD.findall(text)
 
-	def __getitem__(self, index):
-		return self.words[index]
+    def __getitem__(self, index):
+        return self.words[index]
 
-	def __len__(self):
-		return len(self.words)
+    def __len__(self):
+        return len(self.words)
 
-	def __repr__(self):
-		return 'Sentence(%s)' % reprlib.repr(self.text)
+    def __repr__(self):
+        return 'Sentence(%s)' % reprlib.repr(self.text)
 ```
 
 *Chú ý:*
-
--   `re` là công cụ giúp thao tác với regular expressions của Python
+-   `re` là module giúp thao tác với regular expressions của Python
     -   `\w` tương đương với `[a-zA-Z0-9_]`
     -   `re.compile(str)`: tạo ra đối tượng lưu trữ pattern là xâu được truyền vào
     -   `RE_WORD.findall(text)`: trả về danh sách các kết quả thỏa mãn pattern lưu bởi `RE_WORD` không giẫm lên nhau trong xâu `text`
-
 -   Sequence protocol yêu cầu implement cả `__getitem__` và `__len__`, nhưng để tạo ra iterators thì chỉ cần `__getitem__`
 
 Giờ ta có thể sử dụng Sentence như là một sequence:
@@ -77,28 +106,30 @@ said
 >>> print(*sentence, sep=', ')
 The, time, has, come, the, Walrus, said
 ```
-#### The iter Function
+
+#### Why Sequences Are Iterable: The iter Function
 
 Mỗi khi trình thông dịch cần duyệt qua một object `x`, nó sẽ gọi hàm `iter(x)`. Hàm này thực hiện các thao tác sau:
-
 -   Kiểm tra xem đối tượng có implement `__iter__` không, nếu có thì gọi đến phương thức đó để lấy về một iterator
 -   Nếu `__iter__` không được implement nhưng `__getitem__` có, Python tạo ra một iterator và đọc từng item của object một cách lần lượt, bắt đầu từ 0
 -   Trường hợp còn lại, raise `TypeError`, báo rằng đối tượng không là iterable
 
-Bởi vì sequence được implement `__getitem__` nên chúng đều là iterable. Thực tế, các standard sequence implement `__iter__` và bạn cũng nên làm điều đó. Việc fallback về `__getitem__` chỉ để phục vụ tương thích ngược và tính năng này có thể không còn trong các phiên bản Python tương lai.
+Bởi vì sequence được implement `__getitem__` nên chúng đều là iterable. Thực tế, các standard sequence implement `__iter__` và bạn cũng nên làm điều đó. Việc fallback về `__getitem__` chỉ để phục vụ tương thích ngược và tính năng này có thể sẽ không còn trong các phiên bản Python trong tương lai.
 
-Ở đây xảy ra một hiện tượng "duck typing" điển hình: Nếu có thể gọi `iter()` trên một đối tượng, đối tượng đó là iterable, bất chấp việc có thể nó không được implement phương thức `__iter__`. Nếu muốn ràng buộc chặt chẽ đối tượng phải được implement `__iter__`, hãy dùng cú pháp "goose typing":
+Đây chính là hành vi "duck typing" điển hình: Nếu có thể gọi `iter()` trên một đối tượng, đối tượng đó là iterable, bất chấp việc có thể nó không được implement phương thức `__iter__`. Nếu muốn ràng buộc chặt chẽ đối tượng phải được implement `__iter__`, hãy dùng cú pháp "goose typing":
 
 ```python
 >>> issubclass(Sentence, abc.Iterable)
 False
 ```
+
 Tuy nhiên, cách làm tốt nhất vẫn là sử dụng khối `try...except` để bắt `TypeError` khi không thể gọi `iter()` trên đối tượng.
 
+---
 ### Iterables vs Iterators
 
--   Iterator là đối tượng được dùng để duyệt qua một collection
--   Iterable là đối tượng có thể được dùng trong phương thức `iter`, trả về một *iterator*
+-   Iterator là con chạy được dùng để duyệt qua một collection
+-   Iterable là đối tượng có thể được truyền vào hàm `iter()` để trả về một *iterator*
 
 `str` cũng là iterable, dưới đây là cú pháp duyệt qua một xâu:
 
@@ -127,17 +158,18 @@ Dưới đây là biểu đồ UML cho mối quan hệ giữa Iterator và Itera
 
 ![images/iterator-vs-iterable.png](images/iterator-vs-iterable.png)
 
-*Chú ý*: `__iter__` của một iterator trả lại chính nó.
-
-Bởi vì chỉ có `__next__` và `__iter__` là hai phương thức bắt buộc đối với iterator nên ta không có cách nào để kiểm tra xem có bao nhiêu phần tử còn lại cũng như không thể reset một iterator (ngoài việc sinh gọi lại hàm iter(...).
+*Chú ý*: 
+-   `__iter__` của một iterator trả về chính nó.
+-   Bởi vì chỉ có `__next__` và `__iter__` là hai phương thức bắt buộc đối với iterator nên ta không có cách nào để kiểm tra xem có bao nhiêu phần tử còn lại cũng như không thể reset một iterator (ngoài việc gọi lại hàm `iter(...)` để tạo iterator mới).
 
 Tóm lại, ta có định nghĩa của iterator:
 
-*"Iterator là bất kỳ đối tượng nào được impelent phương thức `__next__` không chứa tham số mà trả về phần tử tiếp theo của một chuỗi hoặc tung ngoại lệ `StopIteration` khi không còn phần tử nào khác. Python iterator cũng là iterable vì nó được implement phương thức `__iter__` trả về chính nó."* 
+> Iterator là bất kỳ đối tượng nào được impelent phương thức `__next__` không chứa tham số mà trả về phần tử tiếp theo của một chuỗi hoặc tung ngoại lệ `StopIteration` khi không còn phần tử nào khác. Iterator trong Python cũng là iterable vì nó được implement phương thức `__iter__` trả về chính nó. 
 
-### Using A Classic Iterator
+---
+### A Classic Iterator
 
-Bây giờ, ta hãy implement một iterator chuẩn cho class Sentence:
+Bây giờ, ta hãy implement một iterator tuân theo `Iterator` interface cho class `Sentence`, tên là `SequenceIterator`:
 
 ```python
 class Sentence:
@@ -165,19 +197,19 @@ class SentenceIterator:
 
 *Chú ý:* Bắt ngoại lệ ngay khi nó có thể được sinh ra (như ví dụ trên) giúp quản lý code dễ hơn
 
-#### Do NOT Make An Iterator From A Sequence
+#### Making Sentence an Iterator: Bad Idea
 
 Không nên biến một Sequence thành một Iterator. Bạn có thể implement `__next__` cho `Sentence` và giúp nó tự duyệt qua chính nó, nhưng đây hoàn toàn không phải là một ý tưởng hay.
 
 Theo định nghĩa, Iterator design pattern được dùng để:
-
 -   Truy cập đến nội dung của một đối tượng mà không để lộ trạng thái biểu diễn bên trong của nó
 -   Hỗ trợ nhiều yêu cầu duyệt nội dung một đối tượng một cách đồng thời
--   Cung cấp một interface thống nhất để duyệt qua các đối tượng có nhiều cấu trúc khác nhau
+-   Cung cấp một interface thống nhất để duyệt qua các đối tượng có cấu trúc khác nhau
 
 Dễ thấy, việc biến sequence thành iterator phá hỏng cả ba mục đích trên. Đó là lí do cần phải tạo ra một iterator riêng cho class.
 
-### Using A Generator Function
+---
+### A Generator Function
 
 Cách Pythonic nhất để lấy ra một iterator từ một iterable đó là biến phương thức `__iter__` thành một generator function. Dưới đây là ví dụ với lớp `Sentence`:
 
@@ -195,7 +227,7 @@ Tất nhiên ta cũng có thể làm đơn giản hơn với cú pháp `iter(sel
 
 #### How Generator Functions Work
 
-Bất kỳ một hàm nào trong Python mà có từ khóa `yield` ở thân hàm đều là một generator function - trả về một generator object khi được gọi. Nói cách khác, một generator function là một generator factory. Ví dụ:
+Bất kỳ một hàm nào trong Python mà có từ khóa `yield` ở thân hàm đều là một generator function. Generator function trả về một generator object khi được gọi. Nói cách khác, một generator function là một generator factory. Ví dụ:
 
 ```python
 >>> def gen_123():
@@ -208,8 +240,6 @@ Bất kỳ một hàm nào trong Python mà có từ khóa `yield` ở thân hà
 >>> gen_123()
 <generator object gen_123 at 0x7f91e0361a98>
 >>> g = gen_123()
->>> print(next(g) for _ in range(3))
-<generator object <genexpr> at 0x7f91dcbafe08>
 >>> next(g)
 1
 >>> next(g)
@@ -222,12 +252,11 @@ Traceback (most recent call last):
 StopIteration
 ```
 
-Generator function tạo ra một generator object chứa nội dung của hàm. Khi gọi `next(...)` trên generator object, hàm sẽ được thực thi cho đến khi gặp lệnh yield tiếp theo, sau đó `next(...)` trả về giá trị tính toán được ở lệnh `yield` đồng thời ngừng quá trình thực thi của hàm. Sau cùng, khi không còn lệnh `yield` nào nữa và hàm đã `return`, generator object sẽ tung ngoại lệ `StopIteration` chiếu theo `Iterator` protocol.
+Generator function tạo ra một generator object đóng gói nội dung của chính nó. Khi gọi `next(...)` trên generator object, generator function sẽ được thực thi cho đến khi gặp lệnh `yield`, trả về kết quả của lệnh `yield` và tạm dừng. Quá trình này lặp lại mỗi khi hàm `next()` được gọi trên generator object cho đến khi generator function kết thúc, khi đó, generator object sẽ raise `StopIteration` exception như định nghĩa bởi Iterator protocol.
 
-*Lời bình, nguyên văn:* "I find it helpful to be strict when talking about the results obtained from a generator: I say that a generator *yields* or *produces* values. But it’s confusing to say a generator *returns* values. Functions return values. Calling a generator function returns a generator. A generator yields or produces values. A generator doesn’t *return* values in the usual way: the return statement in the body of a generator function causes `StopIteration` to be raised by the generator object."
+Bạn đọc có thể nhầm lẫn giữa `yield` và `return` vì chúng đều cho ra một kết quả nào đó, nhưng đối với generator function, hai lệnh này hoàn toàn khác nhau. Generator function luôn "return" một generator object, generator object "yield" ra một kết quả nào đó mỗi khi gọi `next` trên nó. Lệnh generator function gặp lệnh `return`, nó sẽ gây ra `StopIteration` exception bên trong generator object.
 
-Chú ý, ta cũng có thể dùng vòng lặp `for...in` duyệt qua generator, tuy nhiên có một điểm khác thường khi duyệt qua generator so với khi duyệt qua các collections:
-
+Chú ý, ta cũng có thể dùng vòng lặp `for...in` duyệt qua generator, nhưng chỉ có thể duyệt một lần:
 ```python
 >>> g = gen_123()
 >>> for i in g:
@@ -241,20 +270,29 @@ Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
 StopIteration
 ```
-Ta đã biết Python dịch vòng lặp `for...in` thành vòng lặp `while` sử dụng con chạy là `it=iter(obj)`. Và nếu chạy lệnh `iter(generator)` thì iterator trả về chính là generator đó, bởi vì generator cũng chính là iterator. Do vậy ta không thể duyệt qua một generator hai lần.
 
-### Using A Lazy Implementation
+Lý do:
+-   Python dịch vòng lặp `for...in` thành vòng lặp `while` sử dụng con chạy là `it=iter(obj)`
+-   `iter(generator)` trả về chính `generator` do generator cũng là iterator
+-   Do iterator chỉ được duyệt qua một lần nên generator cũng chỉ được duyệt qua một lần
 
-`Iterator` interface được thiết kế để trở nên đơn giản (*lazy*): `next(my_iterator)` cho ra một item mỗi lần gọi. Trái ngược với khái niệm đơn giản là "cồng kềnh"(*eager*). Hai khái niệm này là những khái niệm kĩ thuật quan trọng trong lý thuyết lập trình.
+---
+### A Lazy Implementation
 
-Class `Sentence` hiện tại vẫn chưa được *lazy*. Phương thức `__init__` phải tạo mới cả một list gồm các chữ cái và gắn nó với thuộc tính `words`. List này có độ dài tương đương cả text ban đầu. Việc làm này sẽ thực sự là thừa thãi nếu người dùng chỉ duyệt qua một vài phần tử đầu tiên của chuỗi.
+`Iterator` interface được thiết kế để hoạt động một cách *lazy*: `next(my_iterator)` cho ra một item mỗi lần gọi. Trái ngược với *lazy* là *eager*. Cả *lazy evaluation* và *eager evaluation* đều là những khái niệm quan trọng trong lý thuyết lập trình.
 
-Whenever you are using Python 3 and start wondering “Is there a lazy way of doing
-this?”, often the answer is “Yes”.
+Class `Sentence` hiện tại vẫn chưa được *lazy*. Phương thức `__init__` phải tạo mới một list gồm tất cả các từ trong xâu đầu vào rồi gán nó với thuộc tính `words`. Điều này gây tốn kém không gian lưu trữ, đặc biệt là khi kích thước của xâu đầu vào lớn mà người dùng chỉ cần xử lý một vài phần tử đầu tiên thôi.
 
-Hàm `re.finditer` là một lazy version của `re.findall`. Thay vì trả về một list, nó trả về một generator tạo ra các `re.MatchObject` instances khi được yêu cầu. Nếu có nhiều kết quả khớp, `re.finditer` sẽ giúp tiết kiệm được rất nhiều bộ nhớ. Áp dụng nó sẽ khiến cho class `Sentence` trở nên *lazy*:
+Python3 thường luôn có cách *lazy* để giải quyết vấn vấn đề của bạn. Ví dụ `re.finditer()` trả về một generator có khả năng yield ra các `re.MatchObject` khi cần, thay vì trả về tất cả các match objects như hàm `re.findall()`. Nếu có nhiều xâu match, `re.finditer()` sẽ giúp tiết kiệm được rất nhiều bộ nhớ.
 
+Ta sẽ dùng `re.finditer()` để khiến class `Sentence` trở nên *lazy*:
 ```python
+import re
+import reprlib
+
+RE_WORD = re.compile('\w+')
+
+
 class Sentence:
 
     def __init__(self, text):
@@ -266,41 +304,54 @@ class Sentence:
     def __iter__(self):
         for match in RE_WORD.finditer(self.text):
             yield match.group()
-
 ```
 
-*Chú ý:* Phương thức `match.group()` lấy ra nội dung text được so khớp trong đối tượng `MatchObject`.
+*Mẹo:* 
+-   Phương thức `match.group()` lấy ra nội dung text được so khớp trong đối tượng `MatchObject`
+  
+*Nhận xét:*
+-   Ta không cần lọc ra tất cả các từ và lưu vào một mảng ngay từ đầu nữa. Thay vào đó, cứ mỗi lần cần lấy ra một từ, ta sẽ trả về nội dung của `match` object tương ứng
 
-Ta vẫn còn có thể làm cho `Sentence` đơn giản hơn với generator expression
+Ta vẫn còn có thể làm cho `Sentence` đơn giản hơn với generator expression.
 
-### Using Generator Expression
+---
+### A Generator Expression
 
-Generator expressions có thể được sử dụng để thay thế cho những generator functions đơn giản. Nó được hiểu là phiên bản *lazy* của list comprehension: trả về từng phần tử một mà không phải tạo ra cả một list. Nói cách khác, list comprehension là *factory* của lists, generator expression là *factory* của generators.
+Generator expressions có thể được sử dụng để thay thế cho những generator functions đơn giản. Có thể hiểu nó như là phiên bản *lazy* của list comprehension: trả về từng phần tử một mà không phải tạo ra cả một list. Nói cách khác, list comprehension là *factory* của lists, generator expression là *factory* của generators.
 
 ```python
+...
     def __iter__(self):
         return (match.group() for match in RE_WORD.finditer(self.text))
 ```
 
-#### Generator Expressions Usecases
+---
+### Generator Expressions: When to Use Them
 
 Ưu điểm:
-
 -   Tiết kiệm bộ nhớ hơn list comprehensions
 -   Gọn gàng hơn generator functions
--   Tính khả đọc cao
+-   Dễ đọc, dễ hiểu
 
-Khi nào ưu tiên dùng generator function hơn:
+Sử dụng generator functions khi:
+-   Logic xử lý để tạo generator phức tạp mà không thể biểu diễn trên một dòng
+-   Cần sử dụng lại, vì functions có tên cụ thể. Ta cũng có thể dùng lại expressions bằng cách gán nó cho biến nào đó, nhưng nhìn chung cách này không được khuyên dùng
 
--   Khi logic xử lý để tạo generator phức tạp hơn một dòng (logical line)
--   Khi cần sử dụng lại (vì functions có tên, expressions thì không)
+*Mẹo:*
+-   Nếu một hàm nào đó nhận duy nhất một tham số một generator, bạn có thể bỏ dấu ngoặc tròn `()` dùng để khởi tạo generator đi:
+    ```python
+    Vector((i*2 for i in range(10)))
+    ```
+    có thể viết lại thành:
+    ```python
+    Vector(i*2 for i in range(10))
+    ```
+---
+### Arithmetic Progression Generator Example
 
-## Arithmetic Progression Generator Example
+Không chỉ có tác dụng lấy dữ liệu từ một collection, iterators còn có chức năng tạo ra từng phần tử một cách tại chỗ. Ví dụ, hàm `range()` tạo ra một cấp số cộng hữu hạn, hàm `itertools.count` tạo ra một cấp số cộng vô hạn.
 
-Không chỉ có tác dụng lấy dữ liệu từ một collection, iterators còn có chức năng tạo ra từng phần tử một cách tại chỗ. Ví dụ, hàm `range()` trả về một cấp số cộng nguyên giới hạn, hàm `itertools.count` tạo ra một cấp số cộng không giới hạn.
-
-Giờ ta sẽ tạo ra một lớp cấp số cộng `ArithmeticProgression`, chữ ký của nó là `ArithmeticProgression(begin, step[ ,end])`, tựa như `range(start, stop[ ,step])` nhưng khác là class của ta cho phần tử cuối là optional và step là bắt buộc.
-
+Trong ví dụ dưới đây, ta sẽ tạo ra một lớp cấp số cộng `ArithmeticProgression` là sự kết hợp của cả `range` và `itertools.count`: Tham số `end` là optional, nếu `end` là `None`, cấp số là vô hạn, ngược lại thì nó là hữu hạn và giới hạn bởi `end`.
 ```python
 class ArithmeticProgression:
 
@@ -320,8 +371,7 @@ class ArithmeticProgression:
 ```
 
 *Chú ý*:
-
--   #1: Kiểu của `result` là kiểu lớn hơn giữa `begin` và `step`. `result` được khởi tạo bằng `begin`
+-   #1: Khởi tạo giá trị của `result` bằng `begin` và kiểu là kiểu lớn hơn trong hai kiểu của `begin` và `step`
 -   #2: Thay vì cộng thêm `step` tại mỗi bước cho `result`, ta tính trực tiếp từ `begin` và `step` để tránh sai số cộng dồn đối với kiểu số thực
 
 Ví dụ sử dụng:
@@ -346,7 +396,7 @@ Ví dụ sử dụng:
 [Decimal('0.0'), Decimal('0.1'), Decimal('0.2')]
 ```
 
-Ta có thể viết lại lớp này dưới dạng một hàm đơn giản hơn:
+Ta có thể viết lại lớp này dưới dạng một generator function đơn giản:
 
 ```python
 def aritprog_gen(begin, step, end=None):
@@ -359,7 +409,7 @@ def aritprog_gen(begin, step, end=None):
         result = begin + step * index
 ```
 
-### Arithmetic Progression with itertools
+#### Arithmetic Progression with itertools
 
 Module `itertools` (Functions creating iterators for efficient looping) trong Python 3.4 có 19 generator functions có thể kết hợp với nhau một cách thú vị. Danh sách đầy đủ nằm ở [đây](https://docs.python.org/3.6/library/itertools.html), dưới đây là một vài ví dụ:
 
@@ -375,7 +425,8 @@ Module `itertools` (Functions creating iterators for efficient looping) trong Py
         return ap_gen
     ```
 
-## Generator Functions in The Standard Library
+---
+### Generator Functions in The Standard Library
 
 Bộ thư viện chuẩn của Python chứa rất nhiều generators hữu dụng:
 
@@ -428,7 +479,8 @@ Bộ thư viện chuẩn của Python chứa rất nhiều generators hữu dụ
 -   `reversed(seq)`: yields từng phần tử của sequence theo thứ tự ngược lại
 -   `itertools.tee(it, n=2)`: tạo ra tuple của n generator cùng duyệt qua `it`
 
-## The yield from Syntax
+---
+### The yield from Syntax
 
 Từ Python 3.4, cú pháp:
 
@@ -443,17 +495,71 @@ yield from iterable
 ```
 Không chỉ là cách để đơn giản hóa cú pháp cho generator functions, `yield from` còn đóng vai trò quan trọng trong lập trình *coroutine* sexddwowjc bàn tới trong chương 16.
 
-## Iterable Reducing Functions
+---
+### Iterable Reducing Functions
 
-Các hàm trả về một giá trị duy nhất từ iterable, đã đề cập đến trong chương 5, bao gồm: `all`, `any`, `max`, `min`, `sum`, `reduce`.
+Các hàm tích hợp có thể được sử dụng trên iterable bao gồm: `all`, `any`, `max`, `min`, `sum`, `reduce`
 
-Hàm `sorted` trả về list gồm các phần tử đã sắp xếp của một iterable, không trả về generators.
+Riêng `sorted` dù nhận đầu vào là iterable bất kỳ nhưng nó sẽ được convert thành list và kết quả trả về cũng là một list (không áp dụng được lazy evaluation).
 
-## A Closer Look at The iter Function
+---
+### A Closer Look at The iter Function
 
 `iter()` trả về iterator từ một sequence, ta đã biết điều đó. Tuy nhiên có một usecase khác của nó, đó là trả về iterator từ bất kỳ một callable object nào. Cú pháp của nó là:
 
-    iter(callable, sentinel) -> iterator
+```
+iter(callable, sentinel) -> iterator
+```
 
-Tức là nó sẽ thực hiện gọi `callable` liên tục cho đến khi `callable` trả về giá trị `sentinel`
+Tức là nó sẽ thực hiện gọi `callable` liên tục cho đến khi `callable` trả về giá trị `sentinel`.
 
+Ví dụ, `d6_iter` sẽ trả về số ngẫu nhiên từ 1 đến 6 cho đến khi nó trả về 1 thì dừng (không in ra 1):
+```python
+>>> def d6():
+...     return randint(1, 6)
+>>> d6_iter = iter(d6, 1)
+>>> for roll in d6_iter:
+...     print(roll)
+...
+4
+3
+6
+3
+```
+---
+### Generators as Coroutines
+
+Qua [PEP 342 — Coroutines via Enhanced Generators](https://www.python.org/dev/peps/pep-0342/), phương thức `.send()` được thêm vào generator với ý tưởng: Mỗi lần `.send()` được gọi, generator function thực thi đến lệnh yield tiếp theo như `__next__()`, nhưng trái với `__next__()`, nó cho phép người dùng truyền tham số của `send()` vào `yield` expressions, giúp người dùng có thể gửi thông tin vào generator, thay vì chỉ lấy thông tin từ generator giống như `next`.
+
+---
+### Summary
+
+> TBD
+
+---
+### Soapbox
+
+#### Generator Function Syntax: More Sugar Would Be Nice
+
+Theo ý kiến cá nhân của tác giả, việc tái sử dụng từ khóa `def` để định nghĩa generator là một thiết kế sai lầm vì các lý do:
+-   Người dùng sẽ không biết một "hàm" là generator nếu không nhìn thấy từ khóa `yield` bên trong nó => Dễ nhầm lẫn
+-   Từ khóa `yield` chỉ có tác dụng đối với khối `def` trực tiếp chứa nó, trong ví dụ sau `f()` không phải là một generator:
+    ```python
+    def f():
+        def do_yield(n):
+            yield n
+        x = 0
+        while True:
+            x += 1
+            do_yield(x)
+    ```
+
+Việc dùng chung từ khóa `yield` khiến coroutine trông giống generator, tôi nghĩ rằng coroutine cũng xứng đáng có từ khóa riêng cho nó.
+
+#### Semantics of Generator vs Iterator
+
+> TBD
+
+#### The Minimalistic Iterator Interface in Python
+
+> TBD

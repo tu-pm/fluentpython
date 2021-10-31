@@ -1,8 +1,8 @@
 ## Chapter 5: First Class Functions
 
-Mục tiêu chinh của chương này là tìm hiểu về bản chất first-class của hàm trong Python. Ý tưởng chính là ta sẽ có các hàm như là các đối tượng mà có thể được gán cho các biến, truyền vào tham số của các hàm khác, lưu trữ trong các cấu trúc dữ liệu, truy cập các thuộc tính hàm, và cho phép các công cụ khác tác động vào các thông tin đó.
+Mục tiêu chinh của chương này là tìm hiểu về bản chất first-class của hàm trong Python. First-class function nghĩa là hàm có thể coi như là đối tượng có thể được gán cho biến, truyền vào tham số của hàm khác, lưu trữ trong các cấu trúc dữ liệu, truy cập các thuộc tính hàm và cho phép các công cụ khác tác động vào thông tin đó.
 
-Higher-order functions (các hàm nhận tham số là các hàm khác) khá phổ biến trong Python. Mặc dù những hàm xử lý chuỗi như `map`, `filter`, hay `reduce` không được sử dụng nhiều - do list comprehensions và các cơ chế generator expressions được ưa chuộng hơn, các higher-order functions khác như `sorted`, `min`, `max` hay `functools.partial` lại thường xuyên được sử dụng.
+Higher-order functions (các hàm nhận tham số là các hàm khác) khá phổ biến trong Python. Mặc dù những hàm xử lý chuỗi như `map`, `filter`, hay `reduce` không được sử dụng nhiều, do list comprehensions và các cơ chế generator expressions được ưa chuộng hơn, các higher-order functions khác như `sorted`, `min`, `max` hay `functools.partial` lại thường xuyên được sử dụng.
 
 Callables (các đối tượng "gọi được") có thể sinh ra bằng nhiều cách, từ lambda expression đơn giản, cho tới các đối tượng của các lớp có implement phương thức `__call__`. Mọi callables đều có thể được phát hiện thông qua hàm built-in `callable()` và hỗ trợ các cú pháp định nghĩa tham số đa dạng, bao gồm cả keyword-only parameters và annotations - hai tính năng mới được giới thiệu từ Python3.
 

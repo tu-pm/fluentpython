@@ -1,77 +1,151 @@
-# Coroutines
+## Coroutines
 
-Coroutines về cú pháp rất giống generator: Chỉ đơn thuần là một hàm có từ khóa `yield`. Những đặc trưng của từ khóa `yield` trong coroutines:
+Coroutines về cú pháp rất giống generator: chỉ đơn thuần là một hàm có từ khóa `yield`. Về bản chất, coroutine là generator với những tính năng mở rộng: 
+-   Từ khóa `yield` thường đứng bên phải một expression: `datum = yield`
+-   Coroutine có thể không sinh ra giá trị nào, lệnh `yield` tương đương với `yield None`
+-   Người sử dụng có thể gửi data vào coroutine thông qua phương thức `.send()`
 
--   Thường đứng bên phải một expression: `datum = yield`
--   Có thể không sinh ra giá trị nào: `yield` === `yield None`
--   Nhận giá trị truyền vào từ caller (?)
+Nội dung của chương này bao gồm:
+-   Hành vi và trạng thái của generators khi chúng hoạt động như là coroutines
+-   "Mồi" coroutine một cách tự động thông qua decorator
+-   Kiểm soát coroutine thông qua các phương thức `.close()` và `.throw()`
+-   Trả về kết quả khi kết thúc coroutine
+-   Sử dụng cú pháp `yield from`
+-   Use case: Quản lý các hoạt động cùng lúc sử dụng coroutines
 
-Ngay cả khi `yield` không trả về dữ liệu nào, nó cũng có thể được dùng như cờ điều khiển luồng thiết bị trong việc implement cooperative multi-tasking: mỗi coroutine yields (trả về) quyền kiểm soát cho scheduler trung tâm để các coroutines khác có thể được kích hoạt.
+---
+### Table of Contents
 
-## How coroutines evolved from generators
+- [Coroutines](#coroutines)
+  - [Table of Contents](#table-of-contents)
+  - [How coroutines evolved from generators](#how-coroutines-evolved-from-generators)
+  - [Basic Behavior of a Generator Used as a Coroutine](#basic-behavior-of-a-generator-used-as-a-coroutine)
+  - [Example: Coroutine to Compute a Running Average](#example-coroutine-to-compute-a-running-average)
+  - [Decorators for coroutine priming](#decorators-for-coroutine-priming)
+  - [Coroutine termination and exception handling](#coroutine-termination-and-exception-handling)
+  - [Returning a value from a coroutine](#returning-a-value-from-a-coroutine)
+  - [Using yield from](#using-yield-from)
+  - [The Meaning of yield from](#the-meaning-of-yield-from)
+  - [Use Case: Coroutines for Discrete Event Simulation](#use-case-coroutines-for-discrete-event-simulation)
+    - [The taxi fleet simulation](#the-taxi-fleet-simulation)
+  - [Summary](#summary)
 
-PEP 342 định nghĩa ra cách implement coroutine từ generator functions với các phương thức mới được bổ sung vào generator API giúp nó có thể làm việc với coroutines, trong đó có:
+---
+### How coroutines evolved from generators
 
+PEP 342 (Python2.5) định nghĩa ra cách implement coroutine từ generator functions thông qua các phương thức mới bao gồm:
 -   `.send(value)`: Truyền `value` vào trong generator object
 -   `.close()`: raise `GeneratorExit`
 -   `.throw(exc)`: raise exeption bên trong generator
 -   Cả ba phương thức này đều trả về giá trị tiếp theo được yield hoặc raise `StopIteration`
 
-### A Simple Coroutine Generator
+PEP 380 (Python3.3) thêm vào hai cú pháp khác cho generator hoạt động như coroutine:
+-   Có thể `return` bên trong generator (làm điều này trước đó sẽ sinh ra `SyntaxError`)
+-   Cú pháp `yield from` giúp biến generators thành các generators lồng một cách tiện dụng
 
-Hãy bắt đầu với một ví dụ đơn giản: Tạo một con đếm từ generator với tên `count2inf`:
+---
+### Basic Behavior of a Generator Used as a Coroutine
+
+Trước hết, hãy bắt đầu bằng một coroutine đơn giản nhất:
 
 ```python
-def count2inf():
-    i = 0
-    while True:
-        x = yield i
-        i += 1
-        print(x)
+>>> def simple_coroutine():
+...     print('-> coroutine started')
+...     x = yield
+...     print('-> coroutine received:', x)
 ```
 
-Việc đặt `yield` ở bên phải dấu `=` như trong câu lệnh `x = yield i` mang ý nghĩa: "Hãy gán giá trị được truyền vào generator bởi phương thức `send` vào biến x, đồng thời `yield` ra giá trị i". Tính năng này đã biến generator object trở thành coroutine, nhận vào một chuỗi input và trả về một chuỗi kết quả xử lý. Dưới đây là một vài ví dụ sử dụng `count2inf`:
-
+Sử dụng coroutine này:
 ```python
->>> cnt = count2inf() #1
->>> cnt.send(3) #2
+>>> my_coro = simple_coroutine()
+>>> next(my_coro)
+-> coroutine started
+>>> my_coro.send(42)
+coroutine received: 42
+```
+
+*Chú ý:*
+-   Lệnh `next(my_coro)` khiến generator chạy đến `yield` thì dừng, do bên phải `yield` không có gì nên generator ngầm định là `yield None`
+-   Lệnh `my_coro.send(42)` khiến generator truyền `42` vào `x` rồi chạy tiếp tới lệnh `yield` tiếp theo. Ta có thể thấy nó đã ỉn ra màn hình số 42 và do generator function return mà không có lệnh `yield` nào nữa, generator sẽ raise `StopIteration`
+
+Mỗi coroutine là một state machine với 4 trạng thái:
+-   `GEN_CREATED`: Đang chờ để được thực thi
+-   `GEN_RUNNING`: Đang được thực thi bởi trình thông dịch
+-   `GEN_SUSPENDED`: Đang dừng tại lệnh `yield`
+-   `GEN_CLOSED`: Đã kết thúc
+
+Có thể quan sát trạng thái của generator hiện tại bằng hàm `inspect.getgeneratorstate`.
+
+Do tham số truyền vào `.send()` cần được gán vào biến `x` đang chờ tại lệnh `yield`, nếu ta send ngay giá trị vào coroutine đang ở trạng thái `GEN_CREATED` thì sẽ sinh ra lỗi, do coroutine vẫn chưa được thực thi nên chưa dừng ở lệnh `yield` nào cả:
+```python
+>>> my_coro = simple_coroutine()
+>>> my_coro.send(1729)
 Traceback (most recent call last):
   File "<stdin>", line 1, in <module>
 TypeError: can't send non-None value to a just-started generator
->>> next(cnt) #3
-0
->>> cnt.send(123) #4
-123
-1
->>> cnt.send(456)
-456
-2
->>> next(cnt) #5
-None
-3
 ```
 
--   #1: Khởi tạo một coroutine x
--   #2: Không được phép `send` giá trị khác `None` vào generator chỉ vừa mới được tạo
--   #3: Phải gọi `next` để lấy ra giá trị đầu tiên trước, đồng thời lệnh `yield` ngắt luồng xử lý ngay trước khi phép gán được thực hiện -> không lấy về được giá trị x tại lần `next` đầu tiên
--   #4: Khi gọi `cnt.send(value)`, value ghi đè lên giá trị được truyền vào generator trước đó (`None`), x được gán bằng value và được in ra, sau đó chương trình chạy đến lần `yield` tiếp theo. Tương tự lần trước, luồng xử lý bị ngắt trước khi x lấy được tham số truyền vào
--   #5: `next(cnt)` tương đương với `cnt.send(None)`
+Do vậy, ta cần "mồi" coroutine bằng cách gọi `next()` hoặc `send(None)` trên nó trước khi truyền vào giá trị.
 
-### Coroutine to compute running average
+Để làm rõ ý "coroutine dừng ở lệnh `yield`", ta sẽ mở rộng ví dụ với coroutine chứa tham số và 2 lệnh `yield`:
+```python
+>>> def simple_coro2(a):
+...     print('-> Started: a =', a)
+...     b = yield a
+...     print('-> Received: b =', b)
+...     c = yield a + b
+...     print('-> Received: c =', c)
+```
+
+Sử dụng coroutine này:
+```python
+>>> my_coro2 = simple_coro2(14)
+>>> from inspect import getgeneratorstate
+>>> getgeneratorstate(my_coro2)
+'GEN_CREATED'
+>>> next(my_coro2)
+-> Started: a = 14
+14
+>>> getgeneratorstate(my_coro2)
+'GEN_SUSPENDED'
+>>> my_coro2.send(28)
+-> Received: b = 28
+42
+>>> my_coro2.send(99)
+-> Received: c = 99
+Traceback (most recent call last):
+File "<stdin>", line 1, in <module>
+StopIteration
+>>> getgeneratorstate(my_coro2)
+'GEN_CLOSED'
+```
+
+*Nhận xét:*
+-   Ta có thể quan sát trạng thái coroutine rõ ràng hơn khi dùng hàm `getgeneratorstate()`
+-   Cú pháp `b = yield a` mang ý nghĩa: yield ra `a`, tạm dừng generator và quay trở lại luồng chính, nếu người dùng chạy tiếp coroutine bằng phương thức `send(val)` thì `val` sẽ được gán cho `b`.
+
+Cần đặc biệt chú ý rằng luồng xử lý của coroutine bị ngắt ngay tại lệnh `yield`, biểu thức bên phải lệnh yield sẽ được xử lý trước và trả về bởi `yield`, phép gán sẽ chỉ được thực hiện sau đó nếu người dùng kích hoạt lại coroutine bằng phương thức `send()`, lúc này biến bên trái dấu `=` sẽ được gán bởi tham số đầu tiên của `send()`. Hình dưới đây minh họa cho điều này:
+
+![coroutine-execution](./images/coroutine_execution.png)
+
+Giờ ta sẽ đến với những ví dụ coroutine có ý nghĩa hơn.
+
+---
+### Example: Coroutine to Compute a Running Average
 
 Trong chương 7, ta đã học về cách tính trung bình cộng của một running sequence. Tại đây, ta sẽ implement lại nó sử dụng coroutine
 
 ```python
 def averager():
-	total = 0.0
-	count = 0
-	average = None
+    total = 0.0
+    count = 0
+    average = None
 
-	while True:
-		term = yield average
-		total += term
-		count += 1
-		average = total / count
+    while True:
+        term = yield average
+        total += term
+        count += 1
+        average = total / count
 ```
 
 Giờ ta có thể sử dụng nó bằng cách truyền tham số vào phương thức `send`:
@@ -87,28 +161,33 @@ Giờ ta có thể sử dụng nó bằng cách truyền tham số vào phương
 15.0
 ```
 
-## Decorators for coroutine priming
+*Nhận xét:*
+-   Coroutine này chạy một infinite loop và sẽ chỉ dừng nếu như người dùng gọi `.close()` trên nó hoặc khi nó bị GC thu hồi nếu không có tham chiếu nào trỏ đến nó nữa
+-   Cách làm này đơn giản hơn cả cách dùng higher-order function vì ta chỉ dùng một "hàm" coroutine và không phải dùng closure để duy trì context giữa các lần gọi
 
-Trước khi sử dụng một sử dụng một coroutine, ta cần nhớ bắt đầu (prime) nó bằng cú pháp `next(x)`. Để có thể sử dụng ngay mà không cần phải nhớ thực hiện thao tác này, hãy tự động hóa nó trong một decorator:
+---
+### Decorators for coroutine priming
+
+Trước khi sử dụng một sử dụng một coroutine, ta cần mồi (prime) nó bằng cú pháp `next(x)`. Ta có thể tự động hóa thao tác này bằng một decorator:
 
 ```python
 def coroutine(func):
-	"""Decorator: primes `func` by advancing to first `yield`"""
-	@wraps(func)
-	def primer(*args, **kwargs):
-		gen = func(*args, **kwargs)
-		next(gen)
-		return gen
-	return primer
+    """Decorator: primes `func` by advancing to first `yield`"""
+    @wraps(func)
+    def primer(*args, **kwargs):
+        gen = func(*args, **kwargs)
+        next(gen)
+        return gen
+    return primer
 ```
-Giờ ta chỉ cần đặt decorator `@coroutine` trước chữ ký hàm `averager` và sử dụng nó mà không cần prime nó nữa. Tuy nhiên, phần lớn các decorator trong các coroutine framework không thực hiện prime coroutine (vì nó không hữu ích lắm).
+Giờ ta chỉ cần đặt decorator `@coroutine` trước chữ ký hàm `averager` và sử dụng nó mà không cần mồi nữa.
 
-## Coroutine termination and exception handling
+Chú ý, khi dùng cú pháp `yied from` thì coroutine tạo ra đã được mồi sẵn rồi, ta không cần phải dùng decorator `@coroutine` cho nó nữa.
 
-Nếu một exception xảy ra bên trong coroutine, nó sẽ được chuyển về nơi gọi phương thức `next` hay `send` gây ra exception.
+---
+### Coroutine termination and exception handling
 
-How an unhandled exception kills a coroutine:
-
+Nếu một ngoại lệ xảy ra bên trong coroutine, nó sẽ được chuyển về nơi gọi phương thức `next` hay `send`:
 ```python
 >>> coro_avg = averager()
 >>> coro_avg.send(40)
@@ -121,18 +200,53 @@ Traceback (most recent call last):
 TypeError: unsupported operand type(s) for +=: 'float' and 'str'
 >>> coro_avg.send(60)
 Traceback (most recent call last):
-File "<stdin>", line 1, in <module>
+  File "<stdin>", line 1, in <module>
 StopIteration
 ```
 
-Cách hay được dùng nhất để ngừng hoạt động của coroutine đó là sử dụng phương thức `close` trên generator hoặc phương thức `throw` để tung ngoại lệ vào bên trong generator. Các thao tác bắt ngoại lệ và dọn dẹp cũng cần được thực hiện khi đóng một coroutine.
+*Nhận xét:*
+-   Truyền xâu `'spam'` vào coroutine `coro_avg` gây lỗi `TypeError` do ta không cộng được một số với một xâu
+-   Sau khi ngoại lệ xảy ra, luồng hoạt động của coroutine chấm dứt hoàn toàn, ta không thể `send` thêm giá trị nào vào nó nữa 
 
-## Returning a value from a coroutine
+Ví dụ này cho ta một gợi ý để dừng một coroutine: bằng cách `send` một giá trị sentinel vào cho nó, thông thường giá trị này là `None`, `Ellipsis` hay `StopIteration`. Đoạn code sau đó xử lý giá trị sentinel này thường trả về một ngoại lệ và làm dừng coroutine. Tuy nhiên, cách làm này có hai vấn đề chính:
+-   Coroutine không dừng ngay mà vẫn chạy tiếp đến khi xảy ra exception => Cách làm này không được "sạch"
+-   Tại nơi gọi `send()` ta phải xử lý ngoại lệ sinh ra bởi thao tác trên giá trị sentinal, người dùng phải biết logic cụ thể của coroutine mới có thể bắt và xử lý ngoại lệ này
 
-Conroutine không chỉ có thể `yield` giá trị, nó còn có thể trả về giá trị từ lệnh `return`. Tuy nhiên việc dùng cùng lúc `yield` và `return` có thể gây nên những nhầm lẫn không đáng có. Bởi vậy, usecase thường gặp nhất khi có cả `yield` và `return` trong một coroutine là:
-    -   `yield` chỉ được dùng để đọc vào giá trị mà không sinh ra giá trị nào
-    -   Vòng lặp `yield` bị chấm dứt tại một điểm nào đó
-    -   Hàm trả về giá trị cuối cùng với từ khóa `return`
+Vì lý do đó, Python 2.5 giới thiệu hai cách để truyền ngoại lệ vào coroutine:
+-   `generator.throw(exc_type[, exc_value[, traceback]])`: Truyền một exception bất kỳ vào vị trí `yield` hiện tại. Lúc này trên generator xảy ra hai trường hợp:
+    -   Nếu generator xử lý ngoại lệ này thì luồng thực thi tiếp diễn đến lệnh `yield` tiếp theo, kết quả trả về của lệnh `yield` này chính là kết quả trả về của `throw`
+    -   Ngược lại, nếu ngoại lệ không được xử lý, hoặc sau khi xử lý có một ngoại lệ khác xuất hiện thì ngoại lệ cuối cùng sẽ truyền lan truyền đến vị trí gọi `throw`
+-   `generator.close()`: Truyền ngoại lệ `GeneratorExit` vào vị trí `yield` hiện tại. Lúc này trên generator xảy ra ba trường hợp:
+    -   Nếu generator không xử lý ngoại lệ này hoặc xử lý và raise `StopIteration` (thường do generator kết thúc) thì sẽ không có lỗi nào trả về vị trí gọi
+    -   Nếu generator xử lý ngoại lệ này và thành công tiến đến lệnh `yield` tiếp theo, dù `yield` sinh ra giá trị nào, kể cả `None`, thì cũng sinh ra ngoại lệ `RuntimeError: generator ignored GeneratorExit`
+    -   Nếu generator xử lý ngoại lệ này và một ngoại lệ khác xảy ra trước khi tiến đến lệnh `yield` tiếp theo thì ngoại lệ mới này sẽ được truyền về vị trí gọi
+
+Tương tự như vấn đề với [@contextmanager](./c15-context-manager.md#using-contextmanager), việc truyền ngoại lệ vào vị trí `yield` có thể sinh ra những ngoại lệ bất thường. Do vậy ta cần đặt lệnh `yield` vào trong khối `try/finally` dọn dẹp tài nguyên dù luồng xử lý của `yield` có sinh ra ngoại lệ hay không:
+
+```python
+def coro_finally():
+    try:
+        while True:
+            try:
+                x = yield
+            except DemoException:
+                print('*** DemoException handled. Continuing...')
+            else:
+                print('-> coroutine received: {!r}'.format(x))
+    finally:
+        print('-> coroutine ending')
+```
+
+*Chú ý:*
+-   Ta không đặt `finally` vào khối `try` bên trong vì ta chỉ muốn hành động dọn dẹp được thực hiện duy nhất một lần trước khi kết thúc coroutine
+
+---
+### Returning a value from a coroutine
+
+Conroutine không chỉ `yield` giá trị, nó còn có thể trả về giá trị từ lệnh `return`. Tuy nhiên việc dùng cùng lúc `yield` và `return` dễ gây nhầm lẫn. Bởi vậy, usecase thường gặp nhất khi có cả `yield` và `return` trong một coroutine là:
+-   `yield` chỉ được dùng để đọc vào giá trị mà không sinh ra giá trị nào
+-   Vòng lặp gọi `yield` bị chấm dứt tại một điểm nào đó
+-   Chỉ có một lệnh `return` duy nhất nằm ở cuối coroutine
 
 Ví dụ: Thay đổi `averager` để nó chỉ trả về kết quả trung bình cộng cuối cùng khi nó nhận vào giá trị `None`:
 
@@ -143,25 +257,41 @@ Result = namedtuple('Result', ['count', 'average'])
 
 
 def averager()
-	total = 0.0
-	count = 0
-	average = None
-	while True:
-		if term is None:
-			break
-		term = yield
-		total += term
-		count += 1
-		average = total / count
+    total = 0.0
+    count = 0
+    average = None
+    while True:
+        if term is None:
+            break
+        term = yield
+        total += term
+        count += 1
+        average = total / count
 
-	return Result(count, average)
+    return Result(count, average)
+```
+
+Kết quả:
+```python
+>>> coro_avg = averager()
+>>> next(coro_avg)
+>>> coro_avg.send(10)
+>>> coro_avg.send(30)
+>>> coro_avg.send(6.5)
+>>> coro_avg.send(None)
+Traceback (most recent call last):
+   ...
+StopIteration: Result(count=3, average=15.5)
 ```
 
 Vấn đề của đoạn code này đó là nó trả về giá trị cuối cùng trong một ngoại lệ `StopIteration`, đây là hành động không mong muốn. Ở mục tiếp theo ta sẽ bàn đến cách xử lý vấn đề này
 
-## Using yield from
+---
+### Using yield from
 
-`yield from` là một cấu trúc hoàn toàn mới trong Python, nó làm nhiều thứ hơn `yield` và việc dùng lại từ khóa này có phần misleading, một từ khóa khác kiểu như `await` phù hợp hơn là `yield from`. Một cách tổng quát, nó được dùng trong trường hợp một generator gọi đến một subgenerator, giá trị được yield bởi subgenerator sẽ trả về cho nơi gọi generator một cách trực tiếp trong khi generator cha sẽ bị block cho đến khi subgenerator kết thúc.
+`yield from` là một cấu trúc rất mới trong Python, nó làm nhiều thứ hơn `yield` và việc dùng lại từ khóa này có phần misleading, tôi nghĩ rằng một từ khóa khác kiểu như `await` phù hợp hơn là `yield from`.
+
+Một cách tổng quát, khi generator gọi `yield from` subgenerator, subgenerator sẽ chiếm quyền thực thi và `yield` giá trị về cho nơi gọi generator cha một cách trực tiếp. Trong lúc đó, generator cha sẽ bị block cho đến khi subgenerator kết thúc.
 
 Trong chương 14, ta đã biết `yield from` có thể được sử dụng để yield giá trị trong vòng lặp for:
 
@@ -170,147 +300,186 @@ for i in range(10):
     yield i
 ```
 
-tương đương với
+tương đương với:
 
 ```python
 yield from range(10)
 ```
 
-Tất nhiên, `yield from` hữu dụng hơn thế. Tính năng chính của `yield from` đó là nó mở một kết nối hai chiều trực tiếp từ caller ngoài cùng đến generator trong cùng để các giá trị có thể được luân chuyển giữa chúng một cách trực tiếp. Dưới đây là ví dụ minh họa trực quan cho tính năng này:
+Tất nhiên, `yield from` hữu dụng hơn thế. Tính năng chính của `yield from` là mở một đường hầm hai chiều kết nối caller ngoài cùng và generator trong cùng để thông tin có thể được trao đổi giữa chúng một cách trực tiếp. Dưới đây là ví dụ minh họa trực quan cho cách hoạt động của `yield from`:
 
 ![generator delegation](./images/generator-delegation.png)
 
-Dưới đây là đoạn code đầy đủ thực thi ví dụ minh họa trên:
+Ba đối tượng chính tham gia vào luồng hoạt động của subgenerator trong ví dụ trên:
+-   *caller*: Đoạn code trong chương trình chính thao tác với đối tượng *delegating generator*
+-   *delegating generator*: Generator chứa `yield from`, invoke *subgenerator* và kết nối *subgenerator* với *caller*
+-   *subgenerator*: Giao tiếp trực tiếp với *caller* sau khi được gọi đến bởi *delegating generator* bằng cú pháp `yield from`, và trả về ngoại lệ `StopIteration` cho *delegating generator* sau khi kết thúc xử lý
+
+Dưới đây là đoạn code đầy đủ thực thi ví dụ minh họa trên.
+
+(Chú ý: Trong sách Fluent Python, tác giả lấy ví dụ với input là một `dict` gồm các `list`, nhưng để cho đơn giản, tôi viết lại các module để chỉ truyền vào `caller` một `list` giá trị thôi)
 
 ```python
 from collections import namedtuple
 
 Result = namedtuple('Result', 'count average')
 
-# the subgenerator
+## the subgenerator
 def averager():
-	total = 0.0
-	count = 0
-	average = None
-	while True:
-		term = yield
-		if term is None:
-			break
-		total += term
-		count += 1
-		average = total/count
-	return Result(count, average)
+    total, count, average = 0.0, 0, None
+    while True:
+        term = yield
+        if term is None:
+            break
+        total += term
+        count += 1
+        average = total/count
+    return Result(count, average)
 
 
-# the delegating generator
-def grouper(results, key):
-	while True:
-		results[key] = yield from averager()
+## the delegating generator
+def grouper():
+    avg = yield from averager()
+    yield avg
 
 
-# the client code, a.k.a. the caller
-def main(data):
-	results = {}
-	for key, values in data.items():
-		group = grouper(results, key)
-		next(group)
-		for value in values:
-			group.send(value)
-		group.send(None) # important!
-
-	# print(results)	# uncomment to debug
-	report(results)
-
-
-# output report
-def report(results):
-	for key, result in sorted(results.items()):
-		group, unit = key.split(';')
-		print('{:2} {:5} averaging {:.2f}{}'.format(
-				result.count, group, result.average, unit))
-
-data = {
-	'girls;kg':
-	[40.9, 38.5, 44.3, 42.2, 45.2, 41.7, 44.5, 38.0, 40.6, 44.5],
-	'girls;m':
-	[1.6, 1.51, 1.4, 1.3, 1.41, 1.39, 1.33, 1.46, 1.45, 1.43],
-	'boys;kg':
-	[39.0, 40.8, 43.2, 40.8, 43.1, 38.6, 41.4, 40.6, 36.3],
-	'boys;m':
-	[1.38, 1.5, 1.32, 1.25, 1.37, 1.48, 1.25, 1.49, 1.46],
-}
-
+## the client code, a.k.a. the caller
+def caller(data):
+    group = grouper()
+    next(group)
+    for value in data:
+        group.send(value)
+    avg = group.send(None) # important!
+    print(avg)
 
 if __name__ == '__main__':
-main(data)
+    data = [40.9, 38.5, 44.3, 42.2, 45.2, 41.7, 44.5, 38.0, 40.6, 44.5]
+    caller(data)
 ```
 
-Cách thức hoạt động của module trên khá đơn giản:
+*Chú giải:*
+-   Hàm `averager()` giữ nguyên như mục trước
+-   Hàm `grouper()` gọi `yield from averager()`, giúp `caller()` và `averager()` giao tiếp trực tiếp với nhau. Trong lúc đó, `grouper()` đợi đến khi `averager` trả về kết quả `Result(count, average)` đóng gói trong một ngoại lệ `StopIteration` thì nó sẽ bóc đối tượng `Result` ra và gán nó vào biến `avg`, sau đó `yield avg` về cho caller
+-   Hàm `caller()`:
+    1.  Khởi tạo coroutine trung gian và lưu vào biến `group`
+    2.  Mồi coroutine `group` bằng cách gọi `next` trên nó. Lúc này, logic trong `grouper` sẽ chạy đến lệnh `yield from` và block tại đó
+    3.  Liên tục `send` các giá trị nằm trong `data` vào `group`, nhưng thực chất lúc này `caller` đang giao tiếp trực tiếp với `averager`
+    4.  Gọi `send(None)` để `averager` break khỏi vòng lặp, tính giá trị trung bình và trả về ngoại lệ `StopIteration` cho `grouper`. Sau đó `grouper` bóc giá trị `Result` từ ngoại lệ này và `yield` nó cho `caller`. Cuối cùng, `caller` thu về giá trị trung bình bằng cách lấy kết quả của câu lệnh `group.send(None)`
 
--   Hàm main cần tính trung bình cộng các list item nằm trong `data` dict. Nó tạo ra `results` dict để lưu kết quả và yêu cầu `grouper` generator tính toán và đóng gói dữ liệu vào dict này
--   Với mỗi key nằm trong `data`, `grouper` tạo ra một phần tử mới trong `results` chứa kết quả được yield về từ subgenerator `averager`
--   Hàm `main` liên tục `send` giá trị vào thể hiện của `grouper` nhưng thực chất là gửi đến `averager`. Sau khi yield hết giá trị trong một list item, nó gửi `None` để break vòng lặp trong `averager` và trả lại quyền xử lý cho `grouper`
--   `grouper` nhận giá trị trả về từ `averager` và tạo ra phần tử mới trong results dict, các thao tác lại được lặp lại
+Ta có thể làm chuỗi `yield from` trở nên dài hơn, mỗi generator lại gọi đến generator khác, cho đến khi kết thúc bằng một generator chỉ có mệnh đề `yield` hoặc là một `iterator`.
 
-Ta có thể làm chuỗi ủy nhiệm trở nên dài hơn, mỗi generator lại ủy nhiệm cho generator con của nó, kết thúc bằng một generator chỉ có mệnh đề `yield` hoặc là một `iterator`.
+---
+### The Meaning of yield from
 
-Chú ý rằng giá trị trả về trong mệnh đề `return` của generator trong cùng không phải là một `StopIteration` exception. Cú pháp `yield from` đã bắt, xử lý nó và chỉ trả về dữ liệu ta mong muốn (thể hiện của `Result`)
+Greg Ewing - tác giả của cú pháp yield form - mô tả về cú pháp `yield from` trong PEP 380 như sau:
+> Khi generator `yield from` một generator khác, tác dụng của nó giống như là khi nội dung của subgenerator được gán vào vị trí của mệnh đề `yield from`. Hơn nữa, subgenerator được phép có thêm mệnh đề `return` trả về một giá trị, giá trị này sẽ trở thành giá trị trả về của mệnh đề `yield from`
 
-Mỗi cú pháp `yield from` đều phải được điều khiển tại vị trí gọi đến `next` hay `send` trên generator ngoài cùng: mỗi lần `yield from` tương ứng với một vòng lặp `for`.
+Cụ thể hơn, dưới đây là 6 ý mô tả chi tiết cơ chế hoạt động của `yield from` trong PEP 380:
+-   Bất kỳ giá trị nào yield ra bởi *subgenerator* đều được truyền thẳng đến *caller*
+-   Bất kỳ giá trị nào truyền đến *delegating generator* thông qua phương thức `send()` đều được chuyển thẳng đến *subgenerator*. Nếu giá trị này là `None`, phương thức `__next__()` trên *subgenerator* sẽ được gọi, trường hợp ngược lại, phương thức được gọi là `send()`. Nếu lời gọi này sinh ra ngoại lệ `StopIteration`, luồng thực thi của *delegating generator* sẽ được tiếp tục, nếu sinh ra các ngoại lệ khác thì chúng cũng sẽ lan truyền về *delegating generator*
+-   Mệnh đề `return expr` trên các generators đều sinh ra ngoại lệ `StopIteration(expr)` khi chúng kết thúc
+-   Giá trị trả về của mệnh đề `yield from` là tham số đầu tiên của ngoại lệ `StopIteration` raised khi *subgenerator* kết thúc
+-   Nếu *caller* `throw` ngoại lệ khác `GeneratorExit` vào *delegating generator*, ngoại lệ này sẽ được truyền vào *subgenerator* qua phương thức `throw`. Nếu hành động này sinh ra ngoại lệ `StopIteration` trên *subgenerator* thì luồng xử lý của *delegating generator* sẽ được tiếp tục. Các ngoại lệ khác sẽ được lan truyền về *delegatig generator*
+-   Nếu *caller* `throw` ngoại lệ `GeneratorExit` hoặc gọi phương thức `close()` trên *delegating generator*, nếu *subgenerator* có phương thức `close()`, phương thức này sẽ được gọi trên *subgenerator* và mọi ngoại lệ sinh ra đều được truyền về *delegating generator*. Ngược lại, phương thức `close()` sẽ được gọi trên delegating generator
 
-## Coroutines for discrete event simulation
+Cơ chế hoạt động của `yield from` chứa nhiều tiểu tiết đáng lưu ý, Greg Ewing đã làm rất tốt để mô tả nó bằng tiếng Anh. Còn dưới đây là mô tả luồng hoạt động của cú pháp `RESULT = yield from EXPR` bằng code Python, hãy cùng luyện não nào:
 
-"Coroutines are a natural way of expressing many algorithms, such as simulations, games, asynchronous I/O, and other forms of event-driven programming or co-operative multitasking" - Guido van Rossum and Phillip J. Eby in PEP 342.
+```python
+_i = iter(EXPR)
+try:
+    _y = next(_i)
+except StopIteration as _e:
+    _r = _e.value
+else:
+    while 1:
+        try:
+            _s = yield _y
+        except GeneratorExit as _e:
+            try:
+                _m = _i.close
+            except AttributeError:
+                pass
+            else:
+                _m()
+            raise _e
+        except BaseException as _e:
+            _x = sys.exc_info()
+            try:
+                _m = _i.throw
+            except AttributeError:
+                raise _e
+            else:
+                try:
+                    _y = _m(*_x)
+                except StopIteration as _e:
+                    _r = _e.value
+                    break
+        else:
+            try:
+                if _s is None:
+                    _y = next(_i)
+                else:
+                    _y = _i.send(_s)
+            except StopIteration as _e:
+                _r = _e.value
+            break
+RESULT = _r
+```
+
+---
+### Use Case: Coroutines for Discrete Event Simulation
+
+>"Coroutines are a natural way of expressing many algorithms, such as simulations, games, asynchronous I/O, and other forms of event-driven programming or co-operative multitasking"
+>
+> Guido van Rossum and Phillip J. Eby in PEP 342.
 
 Ở mục này, ta sẽ đề cập đến một trong số các use cases của coroutines: *mô phỏng sự kiện*. Ta sẽ học cách xử lý các hành động concurrent sử dụng coroutine trên một luồng duy nhất. Coroutines cũng chính là nền tảng xây dựng `asyncio`, bởi vậy đây sẽ là bước khởi động tốt trước khi bàn đến concurrent programming với `asyncio` ở chương 18.
 
-Trước hết, ta cần hiểu về khái niệm discrete event simulation (DES). Nó là một khái niệm mô phỏng trong đó trạng thái của môi trường chỉ thay đổi khi có sự kiện nào đó diễn ra. Ví dụ như các trò chơi theo lượt là DES bởi vì trạng thái của trò chơi không đổi cho đến khi người chơi quyết định nước đi mới, đối lập với các game thời gian thực khi trạng thái của trò chơi thay đổi liên tục theo thời gian thực.
+Trước hết, ta cần hiểu về khái niệm *discrete event simulation (DES)*. Nó là sự mô phỏng một môi trường mà trong đó trạng thái chỉ thay đổi khi có sự kiện nào đó diễn ra. Ví dụ như các trò chơi theo lượt là một dạng DES bởi vì trạng thái của trò chơi không đổi cho đến khi người chơi quyết định nước đi mới, đối lập với các game thời gian thực khi trạng thái của trò chơi thay đổi liên tục theo thời gian thực.
 
-Cả hai loại mô phỏng trên đều có thể được lập trình đa luồng hoặc đơn luồng sử dụng các kĩ thuật như callbacks hay coroutines điều khiển bởi một vòng lặp sự kiện (event loop). Trong đó, mô phỏng thời gian thực hay được thực hiện bởi kĩ thuật đa luồng, trong khi mô phỏng sự kiện rời rạc (DES) thường được lập trình bởi coroutines.
+Cả hai loại mô phỏng trên đều có thể được lập trình đa luồng hoặc đơn luồng sử dụng các kĩ thuật như callbacks hay coroutines điều khiển bởi một vòng lặp sự kiện (event loop). Thông thường, mô phỏng thời gian thực hay được thực hiện bởi kĩ thuật đa luồng, còn mô phỏng sự kiện rời rạc (DES) thường được lập trình bởi coroutines.
 
-### The taxi fleet simulation
+#### The taxi fleet simulation
 
-Kịch bản: Có n taxi, mỗi taxi thực hiện m chuyến trong ngày. Khi chưa có khách, mỗi taxi ở trong trạng thái "prowling" - tìm khách. Khi có khách rồi, nó chuyển sang trạng thái "hành trình". Sau khi trả khách, nó lại quay về trạng thái tìm khách cho đến khi thực hiện xong m chuyến thì thôi.
+*Kịch bản:* Có n taxi, mỗi taxi thực hiện m chuyến trong ngày. Khi chưa có khách, mỗi taxi ở trong trạng thái "prowling" - tìm khách. Khi có khách rồi, nó chuyển sang trạng thái "hành trình". Sau khi trả khách, nó lại quay về trạng thái tìm khách cho đến khi thực hiện xong m chuyến thì thôi.
 
 *Bước 1: Định nghĩa sự kiện*
 
 ```python
 Event = collections.namedtuple('Event', 'time proc action')
 ```
-Trong đó:
 
+Trong đó:
 -   `time`: Thời điểm mà sự kiện diễn ra, được sinh bằng bộ sinh ngẫu nhiên
 -   `proc`: Định danh của taxi
--   `action`={'leave garage', 'pick up passanger', 'drop off passanger', 'going home'}: Các hành động của taxi
+-   `action`={'leave garage', 'pick up passenger', 'drop off passenger', 'going home'}: Các hành động của taxi
 
 *Bước 2: Mô phỏng một taxi*
 
--   Thứ tự hành động của taxi là: rời gara, lặp (đón khách, trả khách) đến khi số chuyến == m, trở về nhà. Ta sẽ lập trình một coroutine nhận vào thời điểm `time` và yield `Event` tương ứng:
-
+-   Thứ tự hành động của taxi là: rời gara => lặp (đón khách, trả khách) đến khi số chuyến bằng m => trở về nhà. Ta sẽ lập trình một coroutine nhận vào thời điểm `time` và yield `Event` tương ứng:
     ```python
     def taxi_process(id, trips, start_time=0):
-	    """Yield to simulator issuing event at each stage change"""
-	    time = yield Event(start_time, id, 'leave garage')
-	    for i in range(trips):
-		    time = yield Event(time, id, 'pick up passager')
-		    time = yield Event(time, id, 'drop off passanger')
+        """Yield to simulator issuing event at each stage change"""
+        time = yield Event(start_time, id, 'leave garage')
+        for i in range(trips):
+            time = yield Event(time, id, 'pick up passenger')
+            time = yield Event(time, id, 'drop off passenger')
 
-	    yield Event(time, id, 'going home')    
+        yield Event(time, id, 'going home')    
     ```
 
 -   Ta có thể tạo ra một taxi như sau:
-
     ```python
     >>> taxi = taxi_process(id=13, trips=2, start_time=0)
     ```
--   Bắt đầu lịch trình cho taxi này:
 
+-   Bắt đầu lịch trình cho taxi này:
     ```python
     >>> next(taxi)
     Event(time=0, proc=13, action='leave garage')
     ```
--   Mỗi lần `send` vào `taxi` coroutine một thời điểm, nó sẽ sinh ra sự kiện tương ứng ở thời điểm đó
 
+-   Mỗi lần `send` vào `taxi` coroutine một thời điểm, nó sẽ sinh ra sự kiện tương ứng ở thời điểm đó
     ```python
     Event(time=0, proc=13, action='leave garage')
     >>> taxi.send(_.time + 7)
@@ -334,7 +503,7 @@ Trong đó:
     -   `events`: Một `PriorityQueue` chứa các item là các đối tượng `Event` với trường khóa mặc định là `item[0]`, tức là trường `time` của `Event`
     -   `procs`: Một `dict` map giữa process id và process instance tương ứng
 
--   Định nghĩa phương thức `run`: Lấy ra event có `time` nhỏ nhất từ hàng đợi `events` -> in thông tin của event -> feed ngẫu nhiên thời điểm xảy ra sự kiện tiếp theo cho process có `proc.id == event.proc` -> nhận được một event mới (hoặc kết thúc process) -> nạp  event vào hàng đợi (hoặc hủy process):
+-   Định nghĩa phương thức `Simulator.run()` lặp lại các bước: (1) Lấy ra event có `time` nhỏ nhất từ hàng đợi `events`, (2) in thông tin của event, (3) feed ngẫu nhiên thời điểm xảy ra sự kiện tiếp theo cho process có `proc.id == event.proc`, (4) nhận được một event mới (hoặc kết thúc process), (5) nạp  event vào hàng đợi - taxi đợi chuyến tiếp theo (hoặc hủy process - taxi về nhà) cho đến khi hàng đợi `events` không còn sự kiện nào nữa (taxi đã về nhà hết):
 
     ```python
     from random import randint
@@ -342,125 +511,102 @@ Trong đó:
 
     class Simulator:
 
-	    def __init__(self, procs_map):
-		    self.events = PriorityQueue
-		    self.procs = dict(procs_map)
+        def __init__(self, procs_map):
+            self.events = PriorityQueue
+            self.procs = dict(procs_map)
 
-	    def run(self, end_time):
-		    """Schedule and display events until time is up"""
+        def run(self, end_time):
+            """Schedule and display events until time is up"""
 
-		    # schedule the first event for each taxi
-		    for _, proc in sorted(self.procs.items()):
-			    first_event = next(proc)
-			    self.events.put(first_event)
+            # schedule the first event for each taxi
+            for _, proc in sorted(self.procs.items()):
+                first_event = next(proc)
+                self.events.put(first_event)
 
-		    # main loop of the simulation
-		    sim_time = 0
-		    while end_time > sim_time:
-			    if self.events.empty():
-				    print('*** end of events ***')
-				    break
+            # main loop of the simulation
+            sim_time = 0
+            while end_time > sim_time:
+                if self.events.empty():
+                    print('*** end of events ***')
+                    break
 
-			    # get the event with the smallest time in the queue...
-			    current_event = self.events.get()
-			    sim_time, proc_id, previous_action = current_event
+                # get the event with the smallest time in the queue...
+                current_event = self.events.get()
+                sim_time, proc_id, previous_action = current_event
 
-			    # ...and print it out
-			    print('taxi: ', proc_id, proc_id * '\t', current_event)
+                # ...and print it out
+                print('taxi: ', proc_id, proc_id * '\t', current_event)
 
-			    # evaluate the next time an event occurs in current process...
-			    next_time = sim_time + randint(1, 5)
+                # evaluate the next time an event occurs in current process...
+                next_time = sim_time + randint(1, 5)
 
-			    # ... and generate the next event from current process
-			    try:
-				    next_event = self.procs[proc_id](next_time)
-			    except StopIteration
-				    # if there's no more events, remove reference to the process
-				    del self.procs[proc_id]
-			    else:
-				    # put the new event on the queue
-				    self.events.put(next_event)
-		    else:
-			    msg = '*** end of simulation time: {} events pending ***'
-			    print(msg.format(self.events.qsize()))
+                # ... and generate the next event from current process
+                try:
+                    next_event = self.procs[proc_id](next_time)
+                except StopIteration
+                    # if there's no more events, remove reference to the process
+                    del self.procs[proc_id]
+                else:
+                    # put the new event on the queue
+                    self.events.put(next_event)
+            else:
+                msg = '*** end of simulation time: {} events pending ***'
+                print(msg.format(self.events.qsize()))
     ```
 
 Bước 4: Chạy chương trình:
 ```python
 >>> taxis = {0: taxi_process(id=0, trips=2, start_time=0),
-		 1: taxi_process(id=1, trips=4, start_time=5),
-		 2: taxi_process(id=2, trips=6, start_time=10)}
+         1: taxi_process(id=1, trips=4, start_time=5),
+         2: taxi_process(id=2, trips=6, start_time=10)}
 >>> sim = Simulator(taxis)
 >>> sim.run(50)
 taxi:  0  Event(time=0, proc=0, action='leave garage')
 taxi:  0  Event(time=3, proc=0, action='pick up passager')
-taxi:  1 	 Event(time=5, proc=1, action='leave garage')
+taxi:  1      Event(time=5, proc=1, action='leave garage')
 taxi:  0  Event(time=6, proc=0, action='drop off passanger')
-taxi:  1 	 Event(time=6, proc=1, action='pick up passager')
+taxi:  1      Event(time=6, proc=1, action='pick up passager')
 taxi:  0  Event(time=10, proc=0, action='pick up passager')
-taxi:  2 		 Event(time=10, proc=2, action='leave garage')
-taxi:  1 	 Event(time=11, proc=1, action='drop off passanger')
+taxi:  2          Event(time=10, proc=2, action='leave garage')
+taxi:  1      Event(time=11, proc=1, action='drop off passanger')
 taxi:  0  Event(time=13, proc=0, action='drop off passanger')
-taxi:  2 		 Event(time=13, proc=2, action='pick up passager')
-taxi:  1 	 Event(time=14, proc=1, action='pick up passager')
+taxi:  2          Event(time=13, proc=2, action='pick up passager')
+taxi:  1      Event(time=14, proc=1, action='pick up passager')
 taxi:  0  Event(time=15, proc=0, action='going home')
-taxi:  2 		 Event(time=15, proc=2, action='drop off passanger')
-taxi:  1 	 Event(time=17, proc=1, action='drop off passanger')
-taxi:  2 		 Event(time=17, proc=2, action='pick up passager')
-taxi:  1 	 Event(time=21, proc=1, action='pick up passager')
-taxi:  2 		 Event(time=21, proc=2, action='drop off passanger')
-taxi:  1 	 Event(time=23, proc=1, action='drop off passanger')
-taxi:  2 		 Event(time=26, proc=2, action='pick up passager')
-taxi:  1 	 Event(time=28, proc=1, action='pick up passager')
-taxi:  2 		 Event(time=29, proc=2, action='drop off passanger')
-taxi:  1 	 Event(time=30, proc=1, action='drop off passanger')
-taxi:  2 		 Event(time=32, proc=2, action='pick up passager')
-taxi:  1 	 Event(time=35, proc=1, action='going home')
-taxi:  2 		 Event(time=37, proc=2, action='drop off passanger')
-taxi:  2 		 Event(time=39, proc=2, action='pick up passager')
-taxi:  2 		 Event(time=44, proc=2, action='drop off passanger')
-taxi:  2 		 Event(time=46, proc=2, action='pick up passager')
-taxi:  2 		 Event(time=48, proc=2, action='drop off passanger')
-taxi:  2 		 Event(time=51, proc=2, action='going home')
+taxi:  2          Event(time=15, proc=2, action='drop off passanger')
+taxi:  1      Event(time=17, proc=1, action='drop off passanger')
+taxi:  2          Event(time=17, proc=2, action='pick up passager')
+taxi:  1      Event(time=21, proc=1, action='pick up passager')
+taxi:  2          Event(time=21, proc=2, action='drop off passanger')
+taxi:  1      Event(time=23, proc=1, action='drop off passanger')
+taxi:  2          Event(time=26, proc=2, action='pick up passager')
+taxi:  1      Event(time=28, proc=1, action='pick up passager')
+taxi:  2          Event(time=29, proc=2, action='drop off passanger')
+taxi:  1      Event(time=30, proc=1, action='drop off passanger')
+taxi:  2          Event(time=32, proc=2, action='pick up passager')
+taxi:  1      Event(time=35, proc=1, action='going home')
+taxi:  2          Event(time=37, proc=2, action='drop off passanger')
+taxi:  2          Event(time=39, proc=2, action='pick up passager')
+taxi:  2          Event(time=44, proc=2, action='drop off passanger')
+taxi:  2          Event(time=46, proc=2, action='pick up passager')
+taxi:  2          Event(time=48, proc=2, action='drop off passanger')
+taxi:  2          Event(time=51, proc=2, action='going home')
 *** end of simulation time: 0 events pending ***
 ```
-## Coroutine Applications
 
-Dưới đây là note về coroutine của tôi về bài giảng [Curious Course on Coroutines and Concurrency](https://www.youtube.com/watch?v=Z_OAlIhXziw) nói về các ứng dụng của coroutine:
+*Nhận xét:* Ví dụ này cho ta một cái nhìn đơn giản nhất về cách thức lập trình đồng thời (concurrent programming) sử dụng vòng lặp sự kiện: Mỗi coroutine chỉ thực hiện hành động trong khoảng thời gian ngắn rồi bước vào khoảng thời gian chờ. Lúc này vòng lặp chính lấy lại quyền kiểm soát và trao quyền thực thi cho một coroutine khác. Khi thời gian chờ kết thúc, coroutine lại được trao quyền thực thi, cứ như vậy cho đến khi tất cả các coroutines đều hoàn thành hết nhiệm vụ của mình.
 
--   Part I: Introduction to Generators and Coroutines
-    -   Generators tạo ra giá trị, coroutines nhận vào giá trị
-    -   Không trộn lẫn hai khái niệm này để tránh gây khó hiểu
--   Part II: Coroutines, Pipelines, and Dataflow
-    -   Tạo ra pipeline bằng coroutines, bao gồm một điểm đầu sinh ra giá trị feed vào pipeline, các coroutines nhận vào, xử lý và truyền đi giá trị, một điểm cuối hiển thị giá trị cuối cùng và xử lý đóng pipeline (với phương thức `close`)
-    -   Có thể rẽ nhánh, gộp nhánh các pipelines để tạo thành một dataflow graph
-    -   Về mặt khái niệm, coroutines giống với handler desgin pattern trong lập trình hướng đối tượng: Đều nhận dữ liệu từ một nguồn nào đó và gửi đi tới các đích khác nhau
--   Part III: Coroutines and Event Dispatching
-    -   Có thể dùng coroutines cho các hệ thống event driven
-    -   Ý tưởng chính:
-        1.  Tiền xử lý input thành format (event, data) và gửi output cho coroutine xử lý dữ liệu
-        1.  Coroutine đọc dữ liệu, xử lý dữ liệu dựa vào event và gửi dữ liệu đến (các) điểm cuối. Bản chất coroutine này là một state machine - quay trở lại trạng thái ban đầu khi đã xử lý + gửi dữ liệu xong
-        1.  Các điểm cuối hiển thị dữ liệu + kết thúc pipeline
--   Part IV: From Data Processing to Concurrent Programming
-    -   Có thể gửi dữ liệu đến các coroutines nằm trên các threads/processes/hosts khác
-    -   Một vài chú ý:
-        -   Gửi dữ liệu đến một coroutine đang chạy gây ra ngoại lệ và ngừng chương trình
-        -   Không thể gửi ngược dữ liệu đến coroutine nguồn, cũng không thể gửi lại dữ liệu từ coroutine cho chính nó
--   Part V: Coroutines as Tasks
-    -   Trong lập trình concurrent, task là một vấn đề con có các tính chất:
-        -   Kiểm soát luồng độc lập
-        -   Sở hữu trạng thái nội bộ
-        -   Có thể được lập lịch (tạm dừng,  tiếp tục)
-        -   Có thể giao tiếp với các tasks khác
-    -   Do vậy, coroutines cũng là tasks
-    -   Tuy nhiên, coroutines không nhất thiết là đa luồng hay đa tiến trình => Có thể lập trình mustitasking chỉ với một luồng duy nhất sử dụng coroutine
--   Part VI: A Crash Course of OS
-    -   Công việc phân công và quản lý multitask là của hệ điều hành
-    -   Hệ điều hành luân chuyển giữa các tasks nhờ cơ chế trap (sinh bởi tín hiệu phần cứng hoặc phần mềm), yêu cầu tạm dừng tiến trình hiện tại và chuyển sang thực hiện tiến trình khác
-    -   Các tasks chờ đợi để được thực thi trong các hàng đợi
-    -   Bản chất câu lệnh `yield` cũng là một dạng trap: Quá trình thực thi bên trong generator bị dừng lại khi tới lệnh yield, quyền kiểm soát chuyển về cho phía gọi generator (phương thức `next` hay `send`)
-    -   Hãy thử xây dựng một hệ điều hành đa nhiệm sử dụng coroutine!
--   Part VII: Let's Build an Operating System
-    -   Just kidding :v Look at his code if you're interested
--   Part VIII: The Problem with the Stack
-    -   Mệnh đề `yield` chỉ có thể tạm dừng hàm chứa nó, không thể dùng để ngừng tác vụ ở mức sâu hơn
+---
+### Summary
+
+Có ba loại phong cách code generator: phong cách "pull" (như iterators), phong cách "push" (như ví dụ tính trung bình cộng) hay phong cách "tasks" (như ví dụ mô phỏng taxi). Ta sẽ bàn cụ thể hơn về phong cách cuối cùng khi lập trình các asynchronus tasks trong chương 18.
+
+Ví dụ về hàm tính trung bình cộng thể hiện một ca sử dụng phổ biến của coroutine: tổng hợp dữ liệu truyền vào nó. Ta cũng thấy ví dụ sử dụng decorator để tự động mồi coroutines, nhưng cần chú ý là cách này có thể không phù hợp với nhiều thủ tục và cú pháp nhận vào một coroutine chưa được mồi và tự động mồi nó (như cú pháp `yield from`).
+
+Coroutine tổng hợp có thể trả về một phần giá trị thông qua các lệnh `yield`, nhưng những giá trị này thường không có nhiều ý nghĩa bằng giá trị trả về cuối cùng thông qua mệnh đề `return` - tính năng xuất hiện tại Python 3.3 thông qua PEP 380. Cú pháp `return result` gây ra ngoại lệ `StopIteration(result)`, cho phép người dùng lấy về `result` từ ngoại lệ này. Mặc dù cách làm này hơi lằng nhằng, nhưng thường thì nó được tự động thực hiện qua cú pháp `yield from`.
+
+Ví dụ đầu tiên đơn giản nhất của cú pháp `yield from` là `yield from iterable`: lấy ra các phần tử của `iterable`. Sau đó, ta tiến tới một ví dụ hoàn chỉnh về luồng hoạt động của chương trình bao gồm một *caller* giao tiếp với *subgenerator* thông qua một đường hầm tạo ra bởi cú pháp `yield from` nằm trên *delegating generator*. Cuối cùng, ta kết thúc mục này bằng một bài luyện não thông qua đoạn mã giả Python mô phỏng luồng hoạt động của *delegating generator*.
+
+Ta kết thúc chương bằng một ví dụ mô phỏng sự kiện rời rạc đơn giản, cho thấy khả năng của generators trong việc cung cấp một giải pháp bên cạnh threads và callbacks trong việc hỗ trợ tính toán đồng thời. Dù đơn giản, ví dụ mô phỏng taxi cho chúng ta một cái nhìn đầu tiên về cách hoạt động của các event-driven framework như `asyncio` - sử dụng một vòng lặp chính để thực thi các tác vụ đồng thời trên một luồng duy nhất. Trong lập trình hướng sự kiện với coroutines, mỗi hành động đồng thời được thực thi trong một coroutine trong một khoảng thời gian nào đó rồi yield lại quyền kiểm soát cho vòng lặp chính để nó trao quyền thực thi cho các coroutines khác. Đây là một dạng của đa nhiệm hợp tác (cooperative multitasking): các coroutines tình nguyện trao lại quyền kiểm soát cho bộ điều phối trung tâm khi nó bước vào trạng thái chờ. Điều này là ngược lại đối với cơ chế lập trình đa nhiệm chiếm đoạt (preemtive multitasking) của threads, khi mà bộ xử lý trung tâm có thể tạm dừng luồn bất kỳ lúc nào để trao quyền thực thi cho các luồng khác.
+
+Một chú ý cuối cùng: Chương này sử dụng một khái niệm rộng của coroutine - một generator function được sử dụng bởi client gọi lệnh `send()` trên nó, hoặc là được sử dụng thông qua cú pháp `yield from`. Đây là định nghĩa chuẩn và được sử dụng trong nhiều tài liệu Python khác nhau. Tuy nhiên, ở Chương 18 nói về asyncio, ta sẽ nhắc tới coroutine với một định nghĩa chặt hơn: Một asyncio coroutine, với `@asyncio.coroutine` deccorator, luôn được sử dụng bởi cú pháp `yield from` mà không gọi `send()` trực tiếp trên nó. Tất nhiên ở dưới `asyncio` vẫn dùng `next()` hay `send()` ở dưới, nhưng user code chỉ cần dùng `yield from` mà thôi.

@@ -1,4 +1,4 @@
-## Coroutines
+## Chapter 16: Coroutines
 
 Coroutines về cú pháp rất giống generator: chỉ đơn thuần là một hàm có từ khóa `yield`. Về bản chất, coroutine là generator với những tính năng mở rộng: 
 -   Từ khóa `yield` thường đứng bên phải một expression: `datum = yield`
@@ -16,7 +16,7 @@ Nội dung của chương này bao gồm:
 ---
 ### Table of Contents
 
-- [Coroutines](#coroutines)
+- [Chapter 16: Coroutines](#chapter-16-coroutines)
   - [Table of Contents](#table-of-contents)
   - [How coroutines evolved from generators](#how-coroutines-evolved-from-generators)
   - [Basic Behavior of a Generator Used as a Coroutine](#basic-behavior-of-a-generator-used-as-a-coroutine)
@@ -609,4 +609,4 @@ Ví dụ đầu tiên đơn giản nhất của cú pháp `yield from` là `yiel
 
 Ta kết thúc chương bằng một ví dụ mô phỏng sự kiện rời rạc đơn giản, cho thấy khả năng của generators trong việc cung cấp một giải pháp bên cạnh threads và callbacks trong việc hỗ trợ tính toán đồng thời. Dù đơn giản, ví dụ mô phỏng taxi cho chúng ta một cái nhìn đầu tiên về cách hoạt động của các event-driven framework như `asyncio` - sử dụng một vòng lặp chính để thực thi các tác vụ đồng thời trên một luồng duy nhất. Trong lập trình hướng sự kiện với coroutines, mỗi hành động đồng thời được thực thi trong một coroutine trong một khoảng thời gian nào đó rồi yield lại quyền kiểm soát cho vòng lặp chính để nó trao quyền thực thi cho các coroutines khác. Đây là một dạng của đa nhiệm hợp tác (cooperative multitasking): các coroutines tình nguyện trao lại quyền kiểm soát cho bộ điều phối trung tâm khi nó bước vào trạng thái chờ. Điều này là ngược lại đối với cơ chế lập trình đa nhiệm chiếm đoạt (preemtive multitasking) của threads, khi mà bộ xử lý trung tâm có thể tạm dừng luồn bất kỳ lúc nào để trao quyền thực thi cho các luồng khác.
 
-Một chú ý cuối cùng: Chương này sử dụng một khái niệm rộng của coroutine - một generator function được sử dụng bởi client gọi lệnh `send()` trên nó, hoặc là được sử dụng thông qua cú pháp `yield from`. Đây là định nghĩa chuẩn và được sử dụng trong nhiều tài liệu Python khác nhau. Tuy nhiên, ở Chương 18 nói về asyncio, ta sẽ nhắc tới coroutine với một định nghĩa chặt hơn: Một asyncio coroutine, với `@asyncio.coroutine` deccorator, luôn được sử dụng bởi cú pháp `yield from` mà không gọi `send()` trực tiếp trên nó. Tất nhiên ở dưới `asyncio` vẫn dùng `next()` hay `send()` ở dưới, nhưng user code chỉ cần dùng `yield from` mà thôi.
+Một chú ý cuối cùng: Chương này sử dụng một khái niệm rộng của coroutine - một generator function được sử dụng bởi client gọi lệnh `send()` trên nó, hoặc là được sử dụng thông qua cú pháp `yield from`. Đây là định nghĩa chuẩn và được sử dụng trong nhiều tài liệu Python khác nhau. Tuy nhiên, ở Chương 18 nói về asyncio, ta sẽ nhắc tới coroutine với một định nghĩa chặt hơn: Một asyncio coroutine, với `@asyncio.coroutine` deccorator, luôn được sử dụng bởi cú pháp `yield from` mà không gọi `send()` trực tiếp trên nó. Tất nhiên `asyncio` vẫn dùng `next()` hay `send()` ở dưới, nhưng user code chỉ cần dùng `yield from` mà thôi.
